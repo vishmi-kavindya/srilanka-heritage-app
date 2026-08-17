@@ -131,6 +131,20 @@ export default function AiSuiteScreen() {
     }
   };
 
+  // 1-Click Sample Monument Scanner Function
+  const scanSampleMonument = (title: string, resultText: string) => {
+    setScanLoading(true);
+    setScanResult(`Analyzing landmark: ${title}...`);
+    setTimeout(() => {
+      setScanResult(resultText);
+      setScanLoading(false);
+    }, 700);
+  };
+
+  const playResult = () => {
+    Speech.speak(scanResult, { language: 'en' });
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: 'transparent' }]}>
       {/* Screen Title */}
@@ -167,6 +181,60 @@ export default function AiSuiteScreen() {
             <Text style={[styles.cardHeader, { color: colors.textPrimary }]}>{t.scannerTitle}</Text>
             <Text style={[styles.cardSub, { color: colors.textSecondary }]}>{t.scannerSub}</Text>
 
+            {/* 1-Click Sample Monument Tester Bar */}
+            <Text style={{ fontSize: 11, fontWeight: '800', color: colors.textSecondary, marginBottom: 8, letterSpacing: 0.5 }}>
+              ⚡ INSTANT AI MONUMENT TESTER (Click to Scan):
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+              <TouchableOpacity
+                style={[styles.sampleChip, { backgroundColor: colors.softTeal, borderColor: colors.cardBorder }]}
+                onPress={() =>
+                  scanSampleMonument(
+                    'Sigiriya Maiden Fresco',
+                    '🏛️ Landmark Identified: Sigiriya Maiden Frescoes\n\n📜 Historical Summary:\nCelestial maidens painted on the sheer rock cliff face of Sigiriya. Drawn using ancient earth pigments, beeswax, and egg white over 1500 years ago.\n\n👑 Era: 5th Century AD - King Kashyapa\n\n👗 Etiquette: Flash photography prohibited.'
+                  )
+                }
+              >
+                <Text style={[styles.sampleChipText, { color: colors.textPrimary }]}>🎨 Sigiriya Frescoes</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.sampleChip, { backgroundColor: colors.softTeal, borderColor: colors.cardBorder }]}
+                onPress={() =>
+                  scanSampleMonument(
+                    'Sandakada Pahana (Moonstone)',
+                    '🏛️ Landmark Identified: Sandakada Pahana (Moonstone)\n\n📜 Historical Summary:\nAn exquisitely carved semi-circular slab of stone placed at the foot of monastery steps. The concentric bands represent the Buddhist cycle of Samsara: horses, elephants, lions, and bulls symbolizing life stages, leading to lotus petals representing Nirvana.\n\n👑 Era: Anuradhapura & Polonnaruwa Kingdom (5th - 12th Century AD)'
+                  )
+                }
+              >
+                <Text style={[styles.sampleChipText, { color: colors.textPrimary }]}>🗿 Moonstone</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.sampleChip, { backgroundColor: colors.softTeal, borderColor: colors.cardBorder }]}
+                onPress={() =>
+                  scanSampleMonument(
+                    'Gal Vihara Statues',
+                    '🏛️ Landmark Identified: Gal Vihara Rock Statues (Polonnaruwa)\n\n📜 Historical Summary:\nFour monumental Buddha statues carved directly into a single granite rock face by King Parakramabahu I in the 12th Century AD. Features a standing Buddha with crossed arms and a 14-meter reclining Buddha.'
+                  )
+                }
+              >
+                <Text style={[styles.sampleChipText, { color: colors.textPrimary }]}>🛕 Gal Vihara</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.sampleChip, { backgroundColor: colors.softTeal, borderColor: colors.cardBorder }]}
+                onPress={() =>
+                  scanSampleMonument(
+                    'Galle Lighthouse',
+                    '🏛️ Landmark Identified: Galle Fort Lighthouse & Ramparts\n\n📜 Historical Summary:\nBuilt by the Portuguese in 1588 and heavily fortified by the Dutch in 1663. The Point Utrecht bastion lighthouse guards the entrance to the Indian Ocean.'
+                  )
+                }
+              >
+                <Text style={[styles.sampleChipText, { color: colors.textPrimary }]}>🏰 Galle Lighthouse</Text>
+              </TouchableOpacity>
+            </ScrollView>
+
             {imageUri ? (
               <Image source={{ uri: imageUri }} style={styles.previewImage} />
             ) : (
@@ -193,6 +261,9 @@ export default function AiSuiteScreen() {
             {scanResult ? (
               <View style={[styles.resultBox, { backgroundColor: colors.softTeal, borderColor: colors.cardBorder }]}>
                 <Text style={[styles.resultText, { color: colors.textPrimary }]}>{scanResult}</Text>
+                <TouchableOpacity style={{ marginTop: 10, alignSelf: 'flex-end' }} onPress={playResult}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: Colors.highlight }}>🔊 Hear Results</Text>
+                </TouchableOpacity>
               </View>
             ) : null}
           </View>

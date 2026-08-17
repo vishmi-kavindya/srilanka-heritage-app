@@ -7,13 +7,14 @@ import {
   Animated,
   Platform,
   LayoutChangeEvent,
+  Image,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAppTheme } from '../contexts/ThemeContext';
-import { getTranslation } from '../constants/i18n';
+import { getTranslation, TARGET_13_LANGUAGES } from '../constants/i18n';
 import { Colors } from '../constants/theme';
 
 interface TabMeasurement {
@@ -27,9 +28,10 @@ export default function LiquidGlassTabBar({
   navigation,
 }: any) {
   const insets = useSafeAreaInsets();
-  const { lang } = useLanguage();
+  const { lang, setShowWelcomeModal } = useLanguage();
   const t = getTranslation(lang);
-  const { isDark, toggleTheme } = useAppTheme();
+  const { isDark, toggleTheme, colors } = useAppTheme();
+  const currentLangObj = TARGET_13_LANGUAGES.find((l) => l.code === lang) || TARGET_13_LANGUAGES[0];
 
   // Tab items measurement map for dynamic pill positioning
   const [measurements, setMeasurements] = useState<{ [key: number]: TabMeasurement }>({});
@@ -42,49 +44,54 @@ export default function LiquidGlassTabBar({
   // Scale animation values for tab buttons
   const scaleAnim = useRef(state.routes.map(() => new Animated.Value(1))).current;
 
-  // Map route names to icons and titles matching reference style
+  // Map route names to modern luxury titles and icons
   const getTabInfo = (routeName: string) => {
     switch (routeName) {
       case 'index':
         return {
-          title: 'Home',
-          iconActive: 'home' as const,
-          iconInactive: 'home-outline' as const,
+          title: 'Places & Guide',
+          shortTitle: 'Guide',
+          iconActive: 'compass' as const,
+          iconInactive: 'compass-outline' as const,
         };
       case 'map':
         return {
-          title: 'Map',
+          title: 'Map & Planner',
+          shortTitle: 'Planner',
           iconActive: 'map' as const,
           iconInactive: 'map-outline' as const,
         };
       case 'ai':
         return {
-          title: 'Call',
-          iconActive: 'call' as const,
-          iconInactive: 'call-outline' as const,
+          title: 'AI Scanner',
+          shortTitle: 'AI',
+          iconActive: 'sparkles' as const,
+          iconInactive: 'sparkles-outline' as const,
         };
       case 'transport':
         return {
-          title: 'Transport',
+          title: 'Transport Hub',
+          shortTitle: 'Transport',
           iconActive: 'bus' as const,
           iconInactive: 'bus-outline' as const,
         };
       case 'utilities':
         return {
-          title: 'List',
-          iconActive: 'list' as const,
-          iconInactive: 'list-outline' as const,
+          title: 'Safety & Tools',
+          shortTitle: 'Safety',
+          iconActive: 'shield-checkmark' as const,
+          iconInactive: 'shield-checkmark-outline' as const,
         };
       default:
         return {
           title: routeName,
+          shortTitle: routeName,
           iconActive: 'ellipse' as const,
           iconInactive: 'ellipse-outline' as const,
         };
     }
   };
 
-  // Filter routes to exclude non-navigation screens if any
   const validRoutes = state.routes.filter(
     (route: { name: string }) => !['_layout', '+not-found', 'two'].includes(route.name)
   );
@@ -126,11 +133,10 @@ export default function LiquidGlassTabBar({
   };
 
   const handleTabPress = (route: (typeof state.routes)[0], index: number) => {
-    // Micro-scale press animation
     if (scaleAnim[index]) {
       Animated.sequence([
         Animated.timing(scaleAnim[index], {
-          toValue: 0.88,
+          toValue: 0.92,
           duration: 100,
           useNativeDriver: true,
         }),
@@ -154,12 +160,11 @@ export default function LiquidGlassTabBar({
     }
   };
 
-  // Position navbar AT THE TOP of the screen as requested
-  const topInset = Math.max(insets.top, 14);
+  const topInset = Math.max(insets.top, 12);
 
   return (
     <View style={[styles.outerContainer, { top: topInset }]}>
-      {/* Floating Liquid Glass Shell */}
+      {/* Liquid Glass Luxury Web Header Shell */}
       <View
         style={[
           styles.glassWrapper,
@@ -167,12 +172,12 @@ export default function LiquidGlassTabBar({
         ]}
       >
         <BlurView
-          intensity={Platform.OS === 'ios' ? 75 : 90}
+          intensity={Platform.OS === 'ios' ? 80 : 95}
           tint={isDark ? 'dark' : 'light'}
           style={StyleSheet.absoluteFill}
         />
 
-        {/* Specular Edge Highlight (Top Reflective Rim) */}
+        {/* Specular Edge Highlight */}
         <View
           style={[
             styles.specularHighlight,
@@ -180,7 +185,7 @@ export default function LiquidGlassTabBar({
           ]}
         />
 
-        {/* Glass Glow Sheen Overlay */}
+        {/* Glass Glow Sheen */}
         <View
           style={[
             styles.glassGlowOverlay,
@@ -189,111 +194,149 @@ export default function LiquidGlassTabBar({
         />
 
         <View style={styles.contentContainer}>
-          {/* Animated Liquid Active Pill */}
-          <Animated.View
-            style={[
-              styles.activePill,
-              isDark ? styles.activePillDark : styles.activePillLight,
-              {
-                transform: [{ translateX }],
-                width: pillWidth,
-                opacity: pillOpacity,
-              },
-            ]}
-          >
-            {/* Pill Inner Glossy Top Specular Line */}
-            <View
-              style={[
-                styles.pillHighlightLine,
-                {
-                  backgroundColor: isDark
-                    ? 'rgba(255, 255, 255, 0.45)'
-                    : 'rgba(255, 255, 255, 0.95)',
-                },
-              ]}
-            />
-          </Animated.View>
-
-          {/* Navigation Items */}
-          {validRoutes.map((route: any, index: number) => {
-            const isFocused = state.index === index;
-            const { title, iconActive, iconInactive } = getTabInfo(route.name);
-            const scale = scaleAnim[index] || new Animated.Value(1);
-
-            return (
-              <TouchableOpacity
-                key={route.key}
-                accessibilityRole="button"
-                accessibilityState={isFocused ? { selected: true } : {}}
-                accessibilityLabel={title}
-                onPress={() => handleTabPress(route, index)}
-                onLayout={(e) => handleTabLayout(index, e)}
-                activeOpacity={0.7}
-                style={styles.tabButton}
-              >
-                <Animated.View
-                  style={[
-                    styles.tabButtonInner,
-                    { transform: [{ scale }] },
-                  ]}
-                >
-                  <Ionicons
-                    name={isFocused ? iconActive : iconInactive}
-                    size={17}
-                    color={
-                      isFocused
-                        ? isDark
-                          ? '#FFFFFF'
-                          : '#4A2A0C'
-                        : isDark
-                        ? 'rgba(255, 215, 230, 0.7)'
-                        : 'rgba(92, 53, 18, 0.75)'
-                    }
-                  />
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.tabLabel,
-                      isFocused ? styles.tabLabelActive : styles.tabLabelInactive,
-                      {
-                        color: isFocused
-                          ? isDark
-                            ? '#FFFFFF'
-                            : '#4A2A0C'
-                          : isDark
-                          ? 'rgba(255, 215, 230, 0.75)'
-                          : 'rgba(92, 53, 18, 0.8)',
-                      },
-                    ]}
-                  >
-                    {title}
-                  </Text>
-                </Animated.View>
-              </TouchableOpacity>
-            );
-          })}
-
-          {/* Theme Switcher Button (Sun ☀️ / Moon 🌙) */}
+          {/* Brand Logo & Title (Desktop/Web Header Branding) */}
           <TouchableOpacity
-            onPress={toggleTheme}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Toggle Light / Dark Theme"
-            style={styles.themeBtn}
+            style={styles.brandContainer}
+            onPress={() => navigation.navigate('index')}
+            activeOpacity={0.8}
           >
-            <View
-              style={[
-                styles.themeBtnInner,
-                isDark ? styles.themeBtnDark : styles.themeBtnLight,
-              ]}
-            >
-              <Ionicons
-                name={isDark ? 'moon' : 'sunny'}
-                size={16}
-                color={isDark ? '#F472B6' : '#EA580C'}
-              />
+            <Image source={require('../assets/images/logo.jpeg')} style={styles.brandLogo} />
+            <View style={styles.brandTextCol}>
+              <View style={styles.brandTitleRow}>
+                <Text style={[styles.brandTitle, { color: isDark ? '#FFFFFF' : Colors.textDark }]}>PEARL</Text>
+                <Text style={[styles.brandAccentTitle, { color: Colors.accent }]}>EXPLORER</Text>
+                <View style={styles.proTag}>
+                  <Text style={styles.proTagText}>PRO</Text>
+                </View>
+              </View>
             </View>
           </TouchableOpacity>
+
+          {/* Center Nav Items Container */}
+          <View style={styles.navItemsRow}>
+            {/* Animated Liquid Active Pill */}
+            <Animated.View
+              style={[
+                styles.activePill,
+                isDark ? styles.activePillDark : styles.activePillLight,
+                {
+                  transform: [{ translateX }],
+                  width: pillWidth,
+                  opacity: pillOpacity,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.pillHighlightLine,
+                  {
+                    backgroundColor: isDark
+                      ? 'rgba(255, 255, 255, 0.45)'
+                      : 'rgba(255, 255, 255, 0.95)',
+                  },
+                ]}
+              />
+            </Animated.View>
+
+            {/* Navigation Items */}
+            {validRoutes.map((route: any, index: number) => {
+              const isFocused = state.index === index;
+              const { title, shortTitle, iconActive, iconInactive } = getTabInfo(route.name);
+              const scale = scaleAnim[index] || new Animated.Value(1);
+
+              return (
+                <TouchableOpacity
+                  key={route.key}
+                  accessibilityRole="button"
+                  accessibilityState={isFocused ? { selected: true } : {}}
+                  accessibilityLabel={title}
+                  onPress={() => handleTabPress(route, index)}
+                  onLayout={(e) => handleTabLayout(index, e)}
+                  activeOpacity={0.75}
+                  style={styles.tabButton}
+                >
+                  <Animated.View
+                    style={[
+                      styles.tabButtonInner,
+                      { transform: [{ scale }] },
+                    ]}
+                  >
+                    <Ionicons
+                      name={isFocused ? iconActive : iconInactive}
+                      size={18}
+                      color={
+                        isFocused
+                          ? isDark
+                            ? '#FFFFFF'
+                            : Colors.primary
+                          : isDark
+                          ? 'rgba(255, 255, 255, 0.65)'
+                          : 'rgba(26, 43, 62, 0.65)'
+                      }
+                    />
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.tabLabel,
+                        isFocused ? styles.tabLabelActive : styles.tabLabelInactive,
+                        {
+                          color: isFocused
+                            ? isDark
+                              ? '#FFFFFF'
+                              : Colors.primary
+                            : isDark
+                            ? 'rgba(255, 255, 255, 0.75)'
+                            : 'rgba(26, 43, 62, 0.75)',
+                        },
+                      ]}
+                    >
+                      {Platform.OS === 'web' ? title : shortTitle}
+                    </Text>
+                  </Animated.View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Right Action Controls: Language Pill + Theme Toggle */}
+          <View style={styles.rightControlsRow}>
+            {/* Language Selector Pill */}
+            <TouchableOpacity
+              style={[
+                styles.langPill,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,140,149,0.1)' }
+              ]}
+              onPress={() => setShowWelcomeModal(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.langPillFlag}>{currentLangObj.flag}</Text>
+              <Text style={[styles.langPillCode, { color: isDark ? '#FFF' : Colors.primary }]}>
+                {currentLangObj.code.toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Theme Switcher Button */}
+            <TouchableOpacity
+              onPress={toggleTheme}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Toggle Light / Dark Theme"
+              style={styles.themeBtn}
+            >
+              <View
+                style={[
+                  styles.themeBtnInner,
+                  isDark ? styles.themeBtnDark : styles.themeBtnLight,
+                ]}
+              >
+                <Ionicons
+                  name={isDark ? 'moon' : 'sunny'}
+                  size={16}
+                  color={isDark ? '#F472B6' : '#EA580C'}
+                />
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </View>
@@ -312,158 +355,162 @@ const styles = StyleSheet.create({
   },
   glassWrapper: {
     width: '100%',
-    maxWidth: 480,
-    borderRadius: 40,
+    maxWidth: 1140,
+    borderRadius: 24,
     overflow: 'hidden',
     position: 'relative',
-    // Liquid Glass Multi-Layer Shadow
     ...Platform.select({
       ios: {
-        shadowColor: '#3B1506',
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.28,
+        shadowOpacity: 0.22,
         shadowRadius: 20,
       },
       android: {
-        elevation: 14,
+        elevation: 12,
       },
       web: {
-        shadowColor: 'rgba(59, 21, 6, 0.3)',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.3,
-        shadowRadius: 24,
-        backdropFilter: 'blur(22px) saturate(200%)',
-        WebkitBackdropFilter: 'blur(22px) saturate(200%)',
+        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.08)',
+        backdropFilter: 'blur(24px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
       } as any,
     }),
   },
-
-  /* 🌟 Light Theme Glass (Amber / Honey Liquid Glass matching Reference Screenshot 1) */
   glassWrapperLight: {
-    backgroundColor: 'rgba(251, 191, 114, 0.48)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.95)',
   },
-
-  /* 🍷 Dark Theme Glass (Rich Ruby / Plum Velvet Glass matching Reference Screenshot 2) */
   glassWrapperDark: {
-    backgroundColor: 'rgba(68, 18, 38, 0.72)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(244, 114, 182, 0.35)',
+    backgroundColor: 'rgba(18, 22, 34, 0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
-
   specularHighlight: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 2,
-    zIndex: 10,
+    height: 1.5,
   },
   specularLight: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
   specularDark: {
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
   },
   glassGlowOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: '50%',
-    zIndex: 1,
+    height: 28,
   },
   glowLight: {
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   glowDark: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
+
   contentContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+
+  // Brand Logo & Title
+  brandContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  brandLogo: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+  },
+  brandTextCol: {
+    justifyContent: 'center',
+  },
+  brandTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  brandTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  brandAccentTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  proTag: {
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 5,
+    marginLeft: 3,
+  },
+  proTagText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+
+  // Nav Items Center Row
+  navItemsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     position: 'relative',
-    zIndex: 5,
+    gap: 4,
   },
   activePill: {
     position: 'absolute',
-    top: 5,
-    bottom: 5,
-    borderRadius: 30,
-    zIndex: 2,
-    overflow: 'hidden',
+    top: 0,
+    bottom: 0,
+    borderRadius: 16,
   },
-
-  /* Light Theme Active Indicator Pill (Glowing Crisp White) */
   activePillLight: {
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    backgroundColor: 'rgba(0, 140, 149, 0.14)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 1)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#EA580C',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 6,
-      },
-      web: {
-        boxShadow: '0px 4px 14px rgba(234, 88, 12, 0.25), inset 0px 1px 2px rgba(255, 255, 255, 1)',
-      } as any,
-    }),
+    borderColor: 'rgba(0, 140, 149, 0.3)',
   },
-
-  /* Dark Theme Active Indicator Pill (Frosted Silver / Plum Pill) */
   activePillDark: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.45)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 6,
-      },
-      web: {
-        boxShadow: '0px 4px 16px rgba(0, 0, 0, 0.5), inset 0px 1px 1px rgba(255, 255, 255, 0.5)',
-      } as any,
-    }),
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-
   pillHighlightLine: {
     position: 'absolute',
-    top: 1,
-    left: 10,
-    right: 10,
+    top: 0,
+    left: 8,
+    right: 8,
     height: 1,
     borderRadius: 1,
   },
+
   tabButton: {
-    flex: 1,
-    paddingVertical: 7,
-    paddingHorizontal: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    zIndex: 2,
   },
   tabButtonInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
+    gap: 6,
   },
   tabLabel: {
-    fontSize: 12,
-    letterSpacing: 0.1,
+    fontSize: 13,
+    fontWeight: '600',
   },
   tabLabelActive: {
     fontWeight: '800',
@@ -471,27 +518,44 @@ const styles = StyleSheet.create({
   tabLabelInactive: {
     fontWeight: '600',
   },
-  themeBtn: {
-    paddingLeft: 4,
-    paddingRight: 2,
-    justifyContent: 'center',
+
+  // Right Actions
+  rightControlsRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    zIndex: 5,
+    gap: 8,
+  },
+  langPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(0,140,149,0.2)',
+  },
+  langPillFlag: {
+    fontSize: 14,
+  },
+  langPillCode: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  themeBtn: {
+    borderRadius: 100,
   },
   themeBtnInner: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
+    justifyContent: 'center',
   },
   themeBtnLight: {
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
-    borderColor: 'rgba(249, 115, 22, 0.5)',
+    backgroundColor: 'rgba(245, 130, 32, 0.15)',
   },
   themeBtnDark: {
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-    borderColor: 'rgba(244, 114, 182, 0.5)',
+    backgroundColor: 'rgba(244, 114, 182, 0.2)',
   },
 });
