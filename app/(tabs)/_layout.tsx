@@ -1,70 +1,53 @@
-import { SymbolView } from 'expo-symbols';
-import { Link, Tabs } from 'expo-router';
-import { Platform, Pressable } from 'react-native';
-
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Tabs } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { useAppTheme } from '../../contexts/ThemeContext';
+import { getTranslation } from '../../constants/i18n';
+import LiquidGlassTabBar from '../../components/LiquidGlassTabBar';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { lang } = useLanguage();
+  const { colors } = useAppTheme();
+  const t = getTranslation(lang);
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'chevron.left.forwardslash.chevron.right',
-                android: 'code',
-                web: 'code',
-              }}
-              tintColor={color}
-              size={28}
-            />
-          ),
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable style={{ marginRight: 15 }}>
-                {({ pressed }) => (
-                  <SymbolView
-                    name={{ ios: 'info.circle', android: 'info', web: 'info' }}
-                    size={25}
-                    tintColor={Colors[colorScheme].text}
-                    style={{ opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
-        }}
+    <View style={styles.fullContainer}>
+      {/* Full-Screen Dynamic Background Gradient (Sunset in Light Mode, Burgundy Velvet in Dark Mode) */}
+      <LinearGradient
+        colors={colors.bgGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
       />
-      <Tabs.Screen
-        name="two"
-        options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'chevron.left.forwardslash.chevron.right',
-                android: 'code',
-                web: 'code',
-              }}
-              tintColor={color}
-              size={28}
-            />
-          ),
+
+      <Tabs
+        tabBar={(props) => <LiquidGlassTabBar {...props} />}
+        screenOptions={{
+          headerShown: false,
+          sceneStyle: { backgroundColor: 'transparent' },
+          tabBarStyle: {
+            position: 'absolute',
+            backgroundColor: 'transparent',
+            borderTopWidth: 0,
+            elevation: 0,
+          },
         }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen name="index" options={{ title: t.virtualGuideTab || 'Guide' }} />
+        <Tabs.Screen name="map"   options={{ title: t.mapTab || 'Map' }} />
+        <Tabs.Screen name="ai"    options={{ title: t.aiTab || 'AI' }} />
+        <Tabs.Screen name="transport" options={{ title: t.transportTab || 'Transport' }} />
+        <Tabs.Screen name="utilities" options={{ title: t.utilitiesTab || 'Utils' }} />
+      </Tabs>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  fullContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+});

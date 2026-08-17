@@ -42,11 +42,13 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+import { LanguageProvider } from '../contexts/LanguageContext';
+import { ThemeCustomProvider, useAppTheme } from '../contexts/ThemeContext';
 
+function RootContent() {
+  const { isDark } = useAppTheme();
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
@@ -54,3 +56,15 @@ function RootLayoutNav() {
     </ThemeProvider>
   );
 }
+
+function RootLayoutNav() {
+  return (
+    <ThemeCustomProvider>
+      <LanguageProvider>
+        <RootContent />
+      </LanguageProvider>
+    </ThemeCustomProvider>
+  );
+}
+
+
