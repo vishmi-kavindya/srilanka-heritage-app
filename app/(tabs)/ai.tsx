@@ -142,7 +142,16 @@ export default function AiSuiteScreen() {
   };
 
   const playResult = () => {
-    Speech.speak(scanResult, { language: 'en' });
+    if (!scanResult) return;
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const cleanText = scanResult.replace(/[^\w\s.,!?-]/gi, '');
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = 0.95;
+      window.speechSynthesis.speak(utterance);
+    } else {
+      Alert.alert('🔊 Voice Narration', scanResult);
+    }
   };
 
   return (
