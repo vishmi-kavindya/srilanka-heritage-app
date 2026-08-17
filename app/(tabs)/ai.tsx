@@ -395,6 +395,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 11,
     borderWidth: 1, fontSize: 14,
   },
-  sendBtn: { backgroundColor: Colors.highlight, paddingHorizontal: 20, paddingVertical: 11, borderRadius: 22 },
-  sendBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+  sampleChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+  },
+  sampleChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
 });
