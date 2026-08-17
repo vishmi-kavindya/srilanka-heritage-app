@@ -15,13 +15,13 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { getTranslation } from '../../constants/i18n';
-import { Colors, Radius, Shadow } from '../../constants/theme';
+import { Colors, Shadow } from '../../constants/theme';
 
 const BACKEND_URL = Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000';
 
 export default function AiSuiteScreen() {
   const { lang } = useLanguage();
-  const { isDark, colors } = useAppTheme();
+  const { colors } = useAppTheme();
   const t = getTranslation(lang);
   const [activeTab, setActiveTab] = useState<'scanner' | 'chatbot'>('scanner');
 
