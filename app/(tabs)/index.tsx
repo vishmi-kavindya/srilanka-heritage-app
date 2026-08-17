@@ -515,6 +515,9 @@ export default function VirtualGuideScreen() {
   );
 }
 
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: 'transparent' },
+
   // Control Panel (Search, Filter, Currency)
   controlPanelCard: {
     marginHorizontal: 16,
