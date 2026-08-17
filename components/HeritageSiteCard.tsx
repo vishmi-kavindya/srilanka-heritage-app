@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 14,
     alignItems: 'center',
-    justify.content: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
   },
   interactiveMapBtnText: {
