@@ -20,6 +20,11 @@ export interface HeritageSite {
   opening_hours: string;
   dress_code_rules: string[];
   scam_warning_notes: string;
+  is_unesco: boolean;
+  summary_story: string;
+  latitude: number;
+  longitude: number;
+  google_maps_url: string;
 }
 
 export const FALLBACK_HERITAGE_SITES: HeritageSite[] = [
@@ -33,6 +38,11 @@ export const FALLBACK_HERITAGE_SITES: HeritageSite[] = [
     opening_hours: '06:30 AM - 05:30 PM',
     dress_code_rules: ['Wear light breathable clothes', 'Comfortable climbing shoes', 'Hats allowed during climb'],
     scam_warning_notes: 'Beware of unofficial guides demanding $50 for assistance at the entrance. Official guides wear red badges.',
+    is_unesco: true,
+    summary_story: 'Built in the 5th Century AD by King Kashyapa as a sky palace and citadel atop a 200m high granite rock. Features water gardens, mirror wall graffiti, and world-famous maiden frescoes.',
+    latitude: 7.9570,
+    longitude: 80.7603,
+    google_maps_url: 'https://www.google.com/maps/search/?api=1&query=7.9570,80.7603',
   },
   {
     id: 2,
@@ -44,6 +54,11 @@ export const FALLBACK_HERITAGE_SITES: HeritageSite[] = [
     opening_hours: '05:30 AM - 08:00 PM',
     dress_code_rules: ['Cover shoulders & knees fully', 'Remove shoes & hats before entering temple', 'Do not pose with back turned to Buddha statues'],
     scam_warning_notes: 'Fake flower sellers charging 10x prices near the lake. Buy lotus flowers inside official stalls.',
+    is_unesco: true,
+    summary_story: 'Houses the sacred dental relic of Gautama Buddha, venerated as the supreme symbol of Sri Lankan sovereignty inside the royal palace complex of Kandy.',
+    latitude: 7.2936,
+    longitude: 80.6413,
+    google_maps_url: 'https://www.google.com/maps/search/?api=1&query=7.2936,80.6413',
   },
   {
     id: 3,
@@ -55,6 +70,11 @@ export const FALLBACK_HERITAGE_SITES: HeritageSite[] = [
     opening_hours: '07:00 AM - 05:30 PM',
     dress_code_rules: ['Cover shoulders & knees at Gal Vihara', 'Remove shoes on hot stone pavements'],
     scam_warning_notes: 'Bicycle rental scams offering broken bikes. Inspect brakes before renting.',
+    is_unesco: true,
+    summary_story: 'The majestic 12th-century medieval capital of Sri Lanka built by King Parakramabahu I, featuring colossal rock-cut Buddha statues at Gal Vihara and intricate irrigation lakes.',
+    latitude: 7.9645,
+    longitude: 81.0022,
+    google_maps_url: 'https://www.google.com/maps/search/?api=1&query=7.9645,81.0022',
   },
   {
     id: 4,
@@ -66,6 +86,11 @@ export const FALLBACK_HERITAGE_SITES: HeritageSite[] = [
     opening_hours: 'Open 24 Hours',
     dress_code_rules: ['Casual modest wear', 'Sun protection recommended'],
     scam_warning_notes: 'Snake charmers asking excessive money after taking photos without agreement.',
+    is_unesco: true,
+    summary_story: 'A living European fortified citadel built by the Portuguese in 1588 and fortified by the Dutch in 1663. Features cobblestone streets, Dutch ramparts, and Utrecht bastion lighthouse.',
+    latitude: 6.0267,
+    longitude: 80.2170,
+    google_maps_url: 'https://www.google.com/maps/search/?api=1&query=6.0267,80.2170',
   },
   {
     id: 5,
@@ -77,6 +102,11 @@ export const FALLBACK_HERITAGE_SITES: HeritageSite[] = [
     opening_hours: '07:00 AM - 06:00 PM',
     dress_code_rules: ['White attire preferred', 'Cover shoulders & knees', 'Remove shoes at Dagobas'],
     scam_warning_notes: 'Fake donation collectors asking money for temple restoration.',
+    is_unesco: true,
+    summary_story: 'The first ancient capital of Sri Lanka (4th Century BC), home to the sacred Jaya Sri Maha Bodhi tree and massive stupas like Ruwanwelisaya and Jetavanaramaya.',
+    latitude: 8.3500,
+    longitude: 80.3960,
+    google_maps_url: 'https://www.google.com/maps/search/?api=1&query=8.3500,80.3960',
   },
   {
     id: 6,
@@ -88,6 +118,11 @@ export const FALLBACK_HERITAGE_SITES: HeritageSite[] = [
     opening_hours: '07:00 AM - 07:00 PM',
     dress_code_rules: ['Cover shoulders and knees fully', 'Remove footwear before climbing steps'],
     scam_warning_notes: 'Sellers of fake temple entry tickets outside the main gate. Purchase tickets only at the official counter at the bottom of the hill.',
+    is_unesco: true,
+    summary_story: 'Sri Lanka’s largest and best-preserved cave temple complex dating back to 1st Century BC, containing 5 main sanctuary caves with 153 Buddha statues and ancient murals.',
+    latitude: 7.8564,
+    longitude: 80.6517,
+    google_maps_url: 'https://www.google.com/maps/search/?api=1&query=7.8564,80.6517',
   },
   {
     id: 7,
@@ -99,6 +134,11 @@ export const FALLBACK_HERITAGE_SITES: HeritageSite[] = [
     opening_hours: '06:00 AM - 06:00 PM',
     dress_code_rules: ['Leech socks recommended', 'Waterproof hiking shoes', 'Rain jackets'],
     scam_warning_notes: 'Guides demanding payment in advance without registering at the forest entrance office.',
+    is_unesco: true,
+    summary_story: 'A pristine primary tropical rainforest reserve harboring over 60% of Sri Lanka\'s endemic tree species, rare wildlife, and multi-species bird feeding flocks.',
+    latitude: 6.3986,
+    longitude: 80.4194,
+    google_maps_url: 'https://www.google.com/maps/search/?api=1&query=6.3986,80.4194',
   },
   {
     id: 8,
@@ -110,6 +150,11 @@ export const FALLBACK_HERITAGE_SITES: HeritageSite[] = [
     opening_hours: '04:30 AM - 06:30 PM',
     dress_code_rules: ['Men must remove shirts', 'No short skirts/shorts', 'Remove shoes at entrance'],
     scam_warning_notes: 'Be cautious of private parking lot owners nearby charging high fees when free public parking is available.',
+    is_unesco: false,
+    summary_story: 'Established in 948 AD, this iconic Hindu temple is the cultural heart of Jaffna, renowned for its golden Gopuram tower and vibrant annual 25-day festival.',
+    latitude: 9.6744,
+    longitude: 80.0309,
+    google_maps_url: 'https://www.google.com/maps/search/?api=1&query=9.6744,80.0309',
   },
   {
     id: 9,
@@ -121,6 +166,11 @@ export const FALLBACK_HERITAGE_SITES: HeritageSite[] = [
     opening_hours: '08:00 AM - 05:00 PM',
     dress_code_rules: ['Modest clothing', 'Wear sturdy shoes for steep stone stairs'],
     scam_warning_notes: 'Watch out for local children posing as helpers who later ask for money.',
+    is_unesco: false,
+    summary_story: 'Built in the 13th Century as a cliff-side fortress capital, famous for its monumental steep stone staircase guarded by carved lions.',
+    latitude: 7.8139,
+    longitude: 80.2589,
+    google_maps_url: 'https://www.google.com/maps/search/?api=1&query=7.8139,80.2589',
   },
   {
     id: 10,
@@ -132,6 +182,11 @@ export const FALLBACK_HERITAGE_SITES: HeritageSite[] = [
     opening_hours: '06:00 AM - 08:00 PM',
     dress_code_rules: ['Cover knees and shoulders', 'Remove shoes at the middle landing terrace'],
     scam_warning_notes: 'Avoid renting cheap torches from vendors that break immediately. Bring your own light source for sunset climb.',
+    is_unesco: false,
+    summary_story: 'The birthplace of Buddhism in Sri Lanka where monk Mahinda met King Devanampiyatissa in 247 BC. Features 1,840 granite steps, ancient stupas, and Aradhana Gala.',
+    latitude: 8.3514,
+    longitude: 80.5181,
+    google_maps_url: 'https://www.google.com/maps/search/?api=1&query=8.3514,80.5181',
   }
 ];
 

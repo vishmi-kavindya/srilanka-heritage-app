@@ -1,11 +1,12 @@
-import React, { useState, useMemo } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Image, Animated, Modal } from 'react-native';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Image, Animated, Modal, TextInput, Platform } from 'react-native';
 import { useGeofence } from '../../hooks/useGeofence';
 import AudioPlayerCard from '../../components/AudioPlayerCard';
 import VideoPlayerCard from '../../components/VideoPlayerCard';
 import PearlExplorerWelcomeModal from '../../components/PearlExplorerWelcomeModal';
+import HeritageSiteCard, { CurrencyCode, CURRENCY_RATES } from '../../components/HeritageSiteCard';
 import { LanguageCode, TARGET_13_LANGUAGES, getTranslation } from '../../constants/i18n';
-import { FALLBACK_POIS, POI, getTranslatedPOIs } from '../../constants/heritageData';
+import { FALLBACK_POIS, POI, getTranslatedPOIs, getTranslatedHeritageSites, HeritageSite } from '../../constants/heritageData';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { Colors, Radius, Shadow } from '../../constants/theme';
@@ -26,9 +27,76 @@ export default function VirtualGuideScreen() {
   const [simDistance, setSimDistance] = useState<number>(10);
   const [showPickerModal, setShowPickerModal] = useState<boolean>(false);
 
+  // Search, Category, and Currency State
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>('USD');
+
+  // Ken-Burns & Staggered Hero Animation Refs
+  const kenBurnsAnim = useRef(new Animated.Value(1)).current;
+  const fadeBadge = useRef(new Animated.Value(0)).current;
+  const fadeTitle = useRef(new Animated.Value(0)).current;
+  const fadeSub = useRef(new Animated.Value(0)).current;
+  const fadeBtns = useRef(new Animated.Value(0)).current;
+
+  const translateYBadge = fadeBadge.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
+  const translateYTitle = fadeTitle.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
+  const translateYSub = fadeSub.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
+  const translateYBtns = fadeBtns.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
+
+  useEffect(() => {
+    // Ken-Burns Infinite Slow Zoom Loop
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(kenBurnsAnim, {
+          toValue: 1.15,
+          duration: 14000,
+          useNativeDriver: false,
+        }),
+        Animated.timing(kenBurnsAnim, {
+          toValue: 1.0,
+          duration: 14000,
+          useNativeDriver: false,
+        }),
+      ])
+    ).start();
+
+    // Hero Entrance Stagger Animation
+    Animated.stagger(140, [
+      Animated.timing(fadeBadge, { toValue: 1, duration: 550, useNativeDriver: false }),
+      Animated.timing(fadeTitle, { toValue: 1, duration: 550, useNativeDriver: false }),
+      Animated.timing(fadeSub, { toValue: 1, duration: 550, useNativeDriver: false }),
+      Animated.timing(fadeBtns, { toValue: 1, duration: 550, useNativeDriver: false }),
+    ]).start();
+  }, []);
+
   const t = getTranslation(lang);
   const currentLangObj = TARGET_13_LANGUAGES.find((l) => l.code === lang) || TARGET_13_LANGUAGES[0];
   const translatedPOIs = useMemo(() => getTranslatedPOIs(lang), [lang]);
+  const translatedSites = useMemo(() => getTranslatedHeritageSites(lang), [lang]);
+
+  // Filtered Heritage Sites by Search Query & Category
+  const filteredSites = useMemo(() => {
+    return translatedSites.filter((site) => {
+      const matchesCategory =
+        selectedCategory === 'All'
+          ? true
+          : selectedCategory === 'UNESCO'
+          ? site.is_unesco
+          : site.category.toLowerCase().includes(selectedCategory.toLowerCase());
+
+      const query = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !query ||
+        site.name.toLowerCase().includes(query) ||
+        site.district.toLowerCase().includes(query) ||
+        site.category.toLowerCase().includes(query) ||
+        site.summary_story.toLowerCase().includes(query);
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [translatedSites, selectedCategory, searchQuery]);
+
   const activePoi = useMemo(
     () => translatedPOIs.find(p => p.id === activePoiId) ?? translatedPOIs[0],
     [translatedPOIs, activePoiId]
@@ -109,26 +177,107 @@ export default function VirtualGuideScreen() {
         </View>
       </View>
 
-      {/* ── Luxury Travel Hero Banner ── */}
+      {/* ── Ken-Burns Animated Luxury Hero Banner ── */}
       <View style={styles.heroBannerCard}>
-        <Image source={require('../../assets/images/temple.jpg')} style={styles.heroBannerImage} resizeMode="cover" />
+        <Animated.Image
+          source={require('../../assets/images/temple.jpg')}
+          style={[styles.heroBannerImage, { transform: [{ scale: kenBurnsAnim }] }]}
+          resizeMode="cover"
+        />
         <View style={styles.heroBannerOverlay}>
-          <View style={styles.heroBadge}>
+          <Animated.View style={[styles.heroBadge, { opacity: fadeBadge, transform: [{ translateY: translateYBadge }] }]}>
             <Text style={styles.heroBadgeText}>🌴 TROPICAL SRI LANKA HERITAGE</Text>
-          </View>
-          <Text style={styles.heroBannerHeading}>Discover Sri Lanka's Ancient Wonders</Text>
-          <Text style={styles.heroBannerSub}>
-            Experience real-time GPS location stories, 2,500-year UNESCO heritage, and sacred cultural treasures.
-          </Text>
-          <View style={styles.heroBtnRow}>
+          </Animated.View>
+
+          <Animated.Text style={[styles.heroBannerHeading, { opacity: fadeTitle, transform: [{ translateY: translateYTitle }] }]}>
+            Discover Sri Lanka's Ancient Wonders
+          </Animated.Text>
+
+          <Animated.Text style={[styles.heroBannerSub, { opacity: fadeSub, transform: [{ translateY: translateYSub }] }]}>
+            Explore 2,500-year UNESCO heritage, real-time GPS location stories, dress code rules, and ticket prices in your currency.
+          </Animated.Text>
+
+          <Animated.View style={[styles.heroBtnRow, { opacity: fadeBtns, transform: [{ translateY: translateYBtns }] }]}>
             <TouchableOpacity style={styles.ctaPrimaryBtn} onPress={() => setShowPickerModal(true)} activeOpacity={0.88}>
               <Text style={styles.ctaPrimaryText}>📍 Explore Landmarks</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.ctaSecondaryBtn} onPress={() => setShowWelcomeModal(true)} activeOpacity={0.88}>
               <Text style={styles.ctaSecondaryText}>🎧 Smart Voice Guide</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </View>
+      </View>
+
+      {/* ── Search Bar, Category Filter & Currency Switcher Control Panel ── */}
+      <View style={[styles.controlPanelCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
+        {/* Search Input Bar */}
+        <View style={[styles.searchBox, { backgroundColor: colors.inputBg, borderColor: colors.cardBorder }]}>
+          <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
+          <TextInput
+            style={[styles.searchInput, { color: colors.textPrimary }]}
+            placeholder="Search site, city, UNESCO, dress code..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
+              <Text style={{ color: colors.textSecondary, fontWeight: 'bold' }}>✕</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {/* Category Filters */}
+        <Text style={[styles.controlLabel, { color: colors.textSecondary }]}>🏷️ CATEGORY FILTER:</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+          {['All', 'UNESCO', 'Archaeology', 'Buddhist Heritage', 'Colonial Heritage'].map((cat) => (
+            <TouchableOpacity
+              key={cat}
+              style={[
+                styles.categoryChip,
+                { backgroundColor: colors.softTeal, borderColor: colors.cardBorder },
+                selectedCategory === cat && styles.activeCategoryChip,
+              ]}
+              onPress={() => setSelectedCategory(cat)}
+            >
+              <Text
+                style={[
+                  styles.categoryChipText,
+                  { color: colors.textSecondary },
+                  selectedCategory === cat && styles.activeCategoryChipText,
+                ]}
+              >
+                {cat === 'UNESCO' ? '🏛️ UNESCO' : cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Currency Switcher */}
+        <Text style={[styles.controlLabel, { color: colors.textSecondary }]}>💱 TICKET PRICE CURRENCY:</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {(Object.keys(CURRENCY_RATES) as CurrencyCode[]).map((curr) => (
+            <TouchableOpacity
+              key={curr}
+              style={[
+                styles.currencyChip,
+                { backgroundColor: colors.softTeal, borderColor: colors.cardBorder },
+                selectedCurrency === curr && styles.activeCurrencyChip,
+              ]}
+              onPress={() => setSelectedCurrency(curr)}
+            >
+              <Text
+                style={[
+                  styles.currencyChipText,
+                  { color: colors.textSecondary },
+                  selectedCurrency === curr && styles.activeCurrencyChipText,
+                ]}
+              >
+                {CURRENCY_RATES[curr].label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {/* ── Geofence Simulator & GPS Panel ── */}
@@ -310,66 +459,28 @@ export default function VirtualGuideScreen() {
         </View>
       ) : null}
 
-      {/* ── Rich Destination Cards Section ── */}
+      {/* ── Rich Heritage Sites Section (Places, Story, UNESCO, Dress Codes, Scam Warnings, Maps link) ── */}
       <View style={styles.poiSection}>
-        <Text style={styles.sectionLabel}>🌴 Iconic Heritage Destinations</Text>
-        <Text style={styles.sectionSub}>Select a landmark below to simulate arrival & unlock audio guide</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>🌴 Heritage Places Explorer</Text>
+        <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
+          Explore UNESCO sites, stories, dress code rules, ticket prices ({selectedCurrency}), & Google Maps links.
+        </Text>
 
-        {translatedPOIs.map((poi, idx) => {
-          const accent = poiColors[idx % poiColors.length];
-          const isActive = activePoi?.id === poi.id;
-          const coverImg = POI_IMAGES[poi.id] || POI_IMAGES[1];
-
-          return (
-            <TouchableOpacity
-              key={poi.id}
-              style={[styles.destinationCard, isActive && { borderColor: accent, borderWidth: 2.5 }]}
-              onPress={() => {
-                setActivePoiId(poi.id);
-                Alert.alert('📍 Geofence Engaged', `Simulating arrival near: ${poi.title}`);
-              }}
-              activeOpacity={0.9}
-            >
-              {/* Destination Cover Image */}
-              <View style={styles.destImageWrapper}>
-                <Image source={coverImg} style={styles.destCoverImage} resizeMode="cover" />
-                <View style={styles.destOverlayGradient} />
-                
-                {/* Floating Top Badge */}
-                <View style={[styles.destBadgeTag, { backgroundColor: accent }]}>
-                  <Text style={styles.destBadgeText}>📍 {poi.geofence_radius_meters}m Geofence</Text>
-                </View>
-
-                {/* Active Indicator Chip */}
-                {isActive && (
-                  <View style={styles.destActiveChip}>
-                    <Text style={styles.destActiveChipText}>▶ ACTIVE GUIDE</Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Destination Body Content */}
-              <View style={styles.destBody}>
-                <View style={styles.destTitleRow}>
-                  <Text style={[styles.destTitle, isActive && { color: accent }]}>{poi.title}</Text>
-                  <Text style={styles.ratingBadge}>⭐ 4.9</Text>
-                </View>
-                <Text style={styles.destSummary} numberOfLines={2}>
-                  {poi.historical_summary}
-                </Text>
-
-                <View style={styles.destFooterRow}>
-                  <Text style={styles.destCoordsText}>
-                    📍 {poi.latitude.toFixed(4)}° N, {poi.longitude.toFixed(4)}° E
-                  </Text>
-                  <View style={[styles.destPlayBtn, { backgroundColor: accent }]}>
-                    <Text style={styles.destPlayBtnText}>Explore →</Text>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+        {filteredSites.length > 0 ? (
+          filteredSites.map((site) => (
+            <HeritageSiteCard
+              key={site.id}
+              site={site}
+              currency={selectedCurrency}
+            />
+          ))
+        ) : (
+          <View style={[styles.glassCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder, padding: 24, alignItems: 'center' }]}>
+            <Text style={{ fontSize: 32, marginBottom: 8 }}>🔍</Text>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.textPrimary }}>No matching heritage sites found</Text>
+            <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }}>Try clearing your search query or selecting 'All' category.</Text>
+          </View>
+        )}
       </View>
 
       {/* ── Brand Footer ── */}
@@ -404,8 +515,73 @@ export default function VirtualGuideScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
+  // Control Panel (Search, Filter, Currency)
+  controlPanelCard: {
+    marginHorizontal: 16,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    ...Shadow.card,
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
+    borderWidth: 1,
+    marginBottom: 14,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  controlLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    marginBottom: 8,
+  },
+  categoryChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+  },
+  activeCategoryChip: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  categoryChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  activeCategoryChipText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  currencyChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    marginRight: 6,
+    borderWidth: 1,
+  },
+  activeCurrencyChip: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  currencyChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  activeCurrencyChipText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
 
   // Navbar & Header
   heroHeader: {

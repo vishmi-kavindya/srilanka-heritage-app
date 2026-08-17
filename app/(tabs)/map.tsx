@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, Platform, TextInput } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, Platform, TextInput, Linking } from 'react-native';
 import * as Location from 'expo-location';
 import { FALLBACK_HERITAGE_SITES, HeritageSite, getTranslatedHeritageSites } from '../../constants/heritageData';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -610,16 +610,41 @@ export default function HeritageMapScreen() {
       {/* Selected Site Details */}
       {selectedSite && (
         <View style={[styles.siteDetailCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
+          {selectedSite.is_unesco && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(245, 130, 32, 0.15)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 100, alignSelf: 'flex-start', marginBottom: 10, borderWidth: 1, borderColor: 'rgba(245, 130, 32, 0.4)' }}>
+              <Text style={{ fontSize: 11 }}>🏛️</Text>
+              <Text style={{ color: Colors.accent, fontSize: 10, fontWeight: '800', letterSpacing: 0.5 }}>UNESCO WORLD HERITAGE SITE</Text>
+            </View>
+          )}
+
           <Text style={[styles.siteDetailName, { color: colors.textPrimary }]}>📍 {selectedSite.name}</Text>
           <Text style={[styles.siteDetailMeta, { color: colors.textSecondary }]}>
             District: <Text style={styles.bold}>{selectedSite.district}</Text> | Category: <Text style={styles.bold}>{selectedSite.category}</Text>
           </Text>
+
+          {selectedSite.summary_story && (
+            <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 19, marginVertical: 6 }}>
+              {selectedSite.summary_story}
+            </Text>
+          )}
+
           <Text style={[styles.siteDetailMeta, { color: colors.textSecondary }]}>
             Operating Hours: <Text style={styles.bold}>{selectedSite.opening_hours}</Text>
           </Text>
           <Text style={[styles.siteDetailMeta, { color: colors.textSecondary }]}>
-            Foreign Ticket Price: <Text style={styles.bold}>${selectedSite.ticket_price_usd} USD ({selectedSite.ticket_price_lkr} LKR)</Text>
+            Foreign Ticket Price: <Text style={styles.bold}>${selectedSite.ticket_price_usd} USD ({selectedSite.ticket_price_lkr.toLocaleString()} LKR)</Text>
           </Text>
+
+          {/* Open Google Maps Button */}
+          <TouchableOpacity
+            style={{ backgroundColor: Colors.primary, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 }}
+            onPress={() => {
+              const url = selectedSite.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${selectedSite.latitude},${selectedSite.longitude}`;
+              Linking.openURL(url);
+            }}
+          >
+            <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 13 }}>🗺️ Open Directions in Google Maps</Text>
+          </TouchableOpacity>
 
           {/* Transportation Routes and Times */}
           <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
