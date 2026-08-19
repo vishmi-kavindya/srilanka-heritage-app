@@ -1,55 +1,130 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Image, Animated, Modal, TextInput, Platform } from 'react-native';
-import { useGeofence } from '../../hooks/useGeofence';
-import AudioPlayerCard from '../../components/AudioPlayerCard';
-import VideoPlayerCard from '../../components/VideoPlayerCard';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Image,
+  Animated,
+  Modal,
+  Platform,
+  Dimensions,
+} from 'react-native';
+import { useRouter } from 'expo-router';
 import PearlExplorerWelcomeModal from '../../components/PearlExplorerWelcomeModal';
-import HeritageSiteCard, { CurrencyCode, CURRENCY_RATES } from '../../components/HeritageSiteCard';
 import { LanguageCode, TARGET_13_LANGUAGES, getTranslation } from '../../constants/i18n';
-import { FALLBACK_POIS, POI, getTranslatedPOIs, getTranslatedHeritageSites, HeritageSite } from '../../constants/heritageData';
+import { getTranslatedPOIs } from '../../constants/heritageData';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
-import { Colors, Radius, Shadow } from '../../constants/theme';
+import { Colors } from '../../constants/theme';
 
-// Map each heritage POI to iconic high-resolution scenery imagery
-const POI_IMAGES: Record<number, any> = {
-  1: require('../../assets/images/temple.jpg'),
-  2: require('../../assets/images/nine.jpg'),
-  3: require('../../assets/images/coco.AVIF'),
-  4: require('../../assets/images/beach.AVIF'),
-};
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Extended Iconic Sri Lankan Travel Destinations Collection
+const HERO_DESTINATIONS = [
+  {
+    id: 1,
+    title: 'SIGIRIYA LION ROCK',
+    province: 'Matale District · Central Province',
+    tag: '🏛️ UNESCO WORLD HERITAGE',
+    badgeColor: '#FF9F43',
+    image: require('../../assets/images/temple.jpg'),
+    rating: '⭐ 4.9',
+    summary: 'A 5th-century ancient palace fortress built by King Kashyapa on a 200m vertical granite peak, famous for frescoes, mirror wall, and lion gate entry.',
+    audioPoiId: 1,
+  },
+  {
+    id: 2,
+    title: 'NINE ARCH BRIDGE',
+    province: 'Ella · Badulla District',
+    tag: '🚂 COLONIAL ENGINEERING WONDER',
+    badgeColor: '#00D1DE',
+    image: require('../../assets/images/nine.jpg'),
+    rating: '⭐ 4.9',
+    summary: 'The iconic Demodara Nine Arch Viaduct built entirely from stone blocks and bricks without steel, set amidst lush green mountain tea gardens.',
+    audioPoiId: 2,
+  },
+  {
+    id: 3,
+    title: 'COCONUT TREE HILL',
+    province: 'Mirissa · Southern Coast',
+    tag: '🌴 TROPICAL SCENIC PROMONTORY',
+    badgeColor: '#10B981',
+    image: require('../../assets/images/coco.AVIF'),
+    rating: '⭐ 4.8',
+    summary: 'A unique reddish cliff-side dome covered in tall coconut palm trees, extending gracefully into the turquoise Indian Ocean waves.',
+    audioPoiId: 3,
+  },
+  {
+    id: 4,
+    title: 'MIRISSA COASTAL BEACH',
+    province: 'Mirissa · Southern Province',
+    tag: '🌊 OCEAN SAFARI & SURFING',
+    badgeColor: '#3B82F6',
+    image: require('../../assets/images/beach.AVIF'),
+    rating: '⭐ 4.8',
+    summary: 'Pristine golden sand crescent bay world-renowned for blue whale watching expeditions, coral reef snorkeling, and relaxing sunset beach dining.',
+    audioPoiId: 4,
+  },
+  {
+    id: 5,
+    title: 'TEMPLE OF THE SACRED TOOTH',
+    province: 'Kandy · Central Highlands',
+    tag: '👑 SACRED BUDDHIST ROYAL SHRINE',
+    badgeColor: '#F59E0B',
+    image: require('../../assets/images/temple.jpg'),
+    rating: '⭐ 4.9',
+    summary: 'Sri Dalada Maligawa in Kandy houses the sacred tooth relic of the Buddha in a golden-roofed royal palace complex rich with ritual traditions.',
+    audioPoiId: 1,
+  },
+  {
+    id: 6,
+    title: 'GALLE DUTCH FORT',
+    province: 'Galle · Southern Coast',
+    tag: '🏰 17TH CENTURY SEA FORTRESS',
+    badgeColor: '#8B5CF6',
+    image: require('../../assets/images/beach.AVIF'),
+    rating: '⭐ 4.8',
+    summary: 'Europeans fortified 17th-century ramparts overlooking the ocean, blending Dutch colonial architecture, boutique alleys, and ocean views.',
+    audioPoiId: 4,
+  },
+  {
+    id: 7,
+    title: 'POLONNARUWA VATADAGE',
+    province: 'Polonnaruwa · North Central',
+    tag: '🗿 ANCIENT KINGDOM RUINS',
+    badgeColor: '#EC4899',
+    image: require('../../assets/images/nine.jpg'),
+    rating: '⭐ 4.9',
+    summary: 'Intricately carved 12th-century circular stone relic house featuring moonstones, guardstones, and seated granite Buddha statues.',
+    audioPoiId: 2,
+  },
+];
 
 export default function VirtualGuideScreen() {
+  const router = useRouter();
   const { lang, setLang, userProfile, setUserProfile, showWelcomeModal, setShowWelcomeModal } = useLanguage();
-  const { isDark, colors } = useAppTheme();
+  const { colors } = useAppTheme();
+
+  const [selectedHeroIndex, setSelectedHeroIndex] = useState<number>(0);
   const [activePoiId, setActivePoiId] = useState<number>(1);
-  const [isSimulating, setIsSimulating] = useState<boolean>(true);
-  const [simDistance, setSimDistance] = useState<number>(10);
   const [showPickerModal, setShowPickerModal] = useState<boolean>(false);
 
-  // Search, Category, and Currency State
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>('USD');
-
-  // Ken-Burns & Staggered Hero Animation Refs
+  // Animation values for interactive card opening transition
+  const heroCardOpacity = useRef(new Animated.Value(1)).current;
+  const heroCardScale = useRef(new Animated.Value(1)).current;
   const kenBurnsAnim = useRef(new Animated.Value(1)).current;
-  const fadeBadge = useRef(new Animated.Value(0)).current;
-  const fadeTitle = useRef(new Animated.Value(0)).current;
-  const fadeSub = useRef(new Animated.Value(0)).current;
-  const fadeBtns = useRef(new Animated.Value(0)).current;
 
-  const translateYBadge = fadeBadge.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
-  const translateYTitle = fadeTitle.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
-  const translateYSub = fadeSub.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
-  const translateYBtns = fadeBtns.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
+  const activeDestination = HERO_DESTINATIONS[selectedHeroIndex] || HERO_DESTINATIONS[0];
 
   useEffect(() => {
     // Ken-Burns Infinite Slow Zoom Loop
     Animated.loop(
       Animated.sequence([
         Animated.timing(kenBurnsAnim, {
-          toValue: 1.15,
+          toValue: 1.14,
           duration: 14000,
           useNativeDriver: false,
         }),
@@ -60,63 +135,44 @@ export default function VirtualGuideScreen() {
         }),
       ])
     ).start();
-
-    // Hero Entrance Stagger Animation
-    Animated.stagger(140, [
-      Animated.timing(fadeBadge, { toValue: 1, duration: 550, useNativeDriver: false }),
-      Animated.timing(fadeTitle, { toValue: 1, duration: 550, useNativeDriver: false }),
-      Animated.timing(fadeSub, { toValue: 1, duration: 550, useNativeDriver: false }),
-      Animated.timing(fadeBtns, { toValue: 1, duration: 550, useNativeDriver: false }),
-    ]).start();
   }, []);
 
-  const t = getTranslation(lang);
+  // Smooth Card Opening Animation Switcher
+  const handleSelectDestination = (index: number) => {
+    if (index === selectedHeroIndex) return;
+
+    Animated.parallel([
+      Animated.timing(heroCardOpacity, {
+        toValue: 0.15,
+        duration: 150,
+        useNativeDriver: false,
+      }),
+      Animated.timing(heroCardScale, {
+        toValue: 0.97,
+        duration: 150,
+        useNativeDriver: false,
+      }),
+    ]).start(() => {
+      setSelectedHeroIndex(index);
+      setActivePoiId(HERO_DESTINATIONS[index].audioPoiId);
+
+      Animated.parallel([
+        Animated.timing(heroCardOpacity, {
+          toValue: 1,
+          duration: 320,
+          useNativeDriver: false,
+        }),
+        Animated.timing(heroCardScale, {
+          toValue: 1,
+          duration: 320,
+          useNativeDriver: false,
+        }),
+      ]).start();
+    });
+  };
+
   const currentLangObj = TARGET_13_LANGUAGES.find((l) => l.code === lang) || TARGET_13_LANGUAGES[0];
   const translatedPOIs = useMemo(() => getTranslatedPOIs(lang), [lang]);
-  const translatedSites = useMemo(() => getTranslatedHeritageSites(lang), [lang]);
-
-  // Filtered Heritage Sites by Search Query & Category
-  const filteredSites = useMemo(() => {
-    return translatedSites.filter((site) => {
-      const matchesCategory =
-        selectedCategory === 'All'
-          ? true
-          : selectedCategory === 'UNESCO'
-          ? site.is_unesco
-          : site.category.toLowerCase().includes(selectedCategory.toLowerCase());
-
-      const query = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        !query ||
-        site.name.toLowerCase().includes(query) ||
-        site.district.toLowerCase().includes(query) ||
-        site.category.toLowerCase().includes(query) ||
-        site.summary_story.toLowerCase().includes(query);
-
-      return matchesCategory && matchesSearch;
-    });
-  }, [translatedSites, selectedCategory, searchQuery]);
-
-  const activePoi = useMemo(
-    () => translatedPOIs.find(p => p.id === activePoiId) ?? translatedPOIs[0],
-    [translatedPOIs, activePoiId]
-  );
-
-  const simCoords = useMemo(() => {
-    if (!activePoi) return { latitude: 7.9570, longitude: 80.7603 };
-    const offset = (simDistance / 111320); 
-    return {
-      latitude: activePoi.latitude + (simDistance > activePoi.geofence_radius_meters ? offset : 0),
-      longitude: activePoi.longitude
-    };
-  }, [activePoi, simDistance]);
-
-  const { currentLocation } = useGeofence((poi) => {
-    if (!isSimulating) {
-      setActivePoiId(poi.id);
-      Alert.alert('🏛️ Nearby Heritage!', `Within ${poi.geofence_radius_meters}m of ${poi.title}`);
-    }
-  });
 
   const handleCompleteOnboarding = (selectedLang: LanguageCode, profile?: any) => {
     setLang(selectedLang);
@@ -124,296 +180,227 @@ export default function VirtualGuideScreen() {
     setShowWelcomeModal(false);
   };
 
-  // Official Brand Role Color Palette Assignments
-  const poiColors = [Colors.primary, Colors.accent, Colors.secondary, Colors.highlight, Colors.primary, Colors.accent];
-
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.bg }]} contentContainerStyle={{ paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
+    <View style={styles.fullScreenWrapper}>
       <PearlExplorerWelcomeModal
         visible={showWelcomeModal}
         currentLang={lang}
         onCompleteOnboarding={handleCompleteOnboarding}
       />
 
-      {/* ── Floating Header & Brand Navbar ── */}
-      <View style={[styles.heroHeader, { backgroundColor: colors.headerBg, borderColor: colors.cardBorder }]}>
-        <View style={styles.heroTop}>
-          <View style={styles.brandRow}>
-            <View style={styles.logoRing}>
-              <Image source={require('../../assets/images/logo.jpeg')} style={styles.logo} />
-            </View>
-            <View>
-              <View style={styles.titleTagRow}>
-                <Text style={[styles.heroTitle, { color: colors.textPrimary }]}>{t.appTitle}</Text>
-                <View style={styles.proBadge}>
-                  <Text style={styles.proBadgeText}>PRO</Text>
-                </View>
-              </View>
-              <Text style={[styles.heroSub, { color: colors.textSecondary }]}>{t.appSubtitle}</Text>
-            </View>
-          </View>
-          <TouchableOpacity style={[styles.langPill, { backgroundColor: colors.softTeal }]} onPress={() => setShowWelcomeModal(true)} activeOpacity={0.8}>
-            <Text style={styles.langPillFlag}>{currentLangObj.flag}</Text>
-            <Text style={styles.langPillCode}>{currentLangObj.code.toUpperCase()}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* User Profile & Active Language Banner */}
-        <View style={[styles.profileStrip, { backgroundColor: colors.softTeal, borderColor: colors.cardBorder }]}>
-          <View style={[styles.profileDot, { backgroundColor: colors.cardBg }]}>
-            <Text style={{ fontSize: 18 }}>{currentLangObj.flag}</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.profileLangText, { color: colors.textSecondary }]}>
-              {t.activeLang} <Text style={[styles.profileLangBold, { color: colors.textPrimary }]}>{currentLangObj.nativeName}</Text>
-            </Text>
-            <Text style={styles.profileEmail}>
-              {userProfile?.email ? `Explorer: ${userProfile.email}` : t.guestMode}
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.settingsBtn} onPress={() => setShowWelcomeModal(true)} activeOpacity={0.85}>
-            <Text style={styles.settingsBtnText}>⚙️ {t.settings}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* ── Ken-Burns Animated Luxury Hero Banner ── */}
-      <View style={styles.heroBannerCard}>
+      {/* ── FULL SCREEN HERO LANDING PAGE WITH BACKGROUND WALLPAPER ── */}
+      <Animated.View
+        style={[
+          styles.heroFullContainer,
+          {
+            opacity: heroCardOpacity,
+            transform: [{ scale: heroCardScale }],
+          },
+        ]}
+      >
         <Animated.Image
-          source={require('../../assets/images/temple.jpg')}
-          style={[styles.heroBannerImage, { transform: [{ scale: kenBurnsAnim }] }]}
+          source={activeDestination.image}
+          style={[styles.heroFullImage, { transform: [{ scale: kenBurnsAnim }] }]}
           resizeMode="cover"
         />
-        <View style={styles.heroBannerOverlay}>
-          <Animated.View style={[styles.heroBadge, { opacity: fadeBadge, transform: [{ translateY: translateYBadge }] }]}>
-            <Text style={styles.heroBadgeText}>🌴 TROPICAL SRI LANKA HERITAGE</Text>
-          </Animated.View>
 
-          <Animated.Text style={[styles.heroBannerHeading, { opacity: fadeTitle, transform: [{ translateY: translateYTitle }] }]}>
-            Discover Sri Lanka's Ancient Wonders
-          </Animated.Text>
+        {/* Dark Luxury Gradient Overlay */}
+        <View style={styles.heroGradientOverlay}>
 
-          <Animated.Text style={[styles.heroBannerSub, { opacity: fadeSub, transform: [{ translateY: translateYSub }] }]}>
-            Explore 2,500-year UNESCO heritage, real-time GPS location stories, dress code rules, and ticket prices in your currency.
-          </Animated.Text>
-
-          <Animated.View style={[styles.heroBtnRow, { opacity: fadeBtns, transform: [{ translateY: translateYBtns }] }]}>
-            <TouchableOpacity style={styles.ctaPrimaryBtn} onPress={() => setShowPickerModal(true)} activeOpacity={0.88}>
-              <Text style={styles.ctaPrimaryText}>📍 Explore Landmarks</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.ctaSecondaryBtn} onPress={() => setShowWelcomeModal(true)} activeOpacity={0.88}>
-              <Text style={styles.ctaSecondaryText}>🎧 Smart Voice Guide</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
-      </View>
-
-      {/* ── Search Bar, Category Filter & Currency Switcher Control Panel ── */}
-      <View style={[styles.controlPanelCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
-        {/* Search Input Bar */}
-        <View style={[styles.searchBox, { backgroundColor: colors.inputBg, borderColor: colors.cardBorder }]}>
-          <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
-          <TextInput
-            style={[styles.searchInput, { color: colors.textPrimary }]}
-            placeholder="Search site, city, UNESCO, dress code..."
-            placeholderTextColor={colors.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery ? (
-            <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
-              <Text style={{ color: colors.textSecondary, fontWeight: 'bold' }}>✕</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        {/* Category Filters */}
-        <Text style={[styles.controlLabel, { color: colors.textSecondary }]}>🏷️ CATEGORY FILTER:</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-          {['All', 'UNESCO', 'Archaeology', 'Buddhist Heritage', 'Colonial Heritage'].map((cat) => (
-            <TouchableOpacity
-              key={cat}
-              style={[
-                styles.categoryChip,
-                { backgroundColor: colors.softTeal, borderColor: colors.cardBorder },
-                selectedCategory === cat && styles.activeCategoryChip,
-              ]}
-              onPress={() => setSelectedCategory(cat)}
-            >
-              <Text
-                style={[
-                  styles.categoryChipText,
-                  { color: colors.textSecondary },
-                  selectedCategory === cat && styles.activeCategoryChipText,
-                ]}
-              >
-                {cat === 'UNESCO' ? '🏛️ UNESCO' : cat}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Currency Switcher */}
-        <Text style={[styles.controlLabel, { color: colors.textSecondary }]}>💱 TICKET PRICE CURRENCY:</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {(Object.keys(CURRENCY_RATES) as CurrencyCode[]).map((curr) => (
-            <TouchableOpacity
-              key={curr}
-              style={[
-                styles.currencyChip,
-                { backgroundColor: colors.softTeal, borderColor: colors.cardBorder },
-                selectedCurrency === curr && styles.activeCurrencyChip,
-              ]}
-              onPress={() => setSelectedCurrency(curr)}
-            >
-              <Text
-                style={[
-                  styles.currencyChipText,
-                  { color: colors.textSecondary },
-                  selectedCurrency === curr && styles.activeCurrencyChipText,
-                ]}
-              >
-                {CURRENCY_RATES[curr].label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* ── Geofence Simulator & GPS Panel ── */}
-      <View style={[styles.glassCard, styles.simulatorCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
-        <View style={styles.cardHeader}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontSize: 18 }}>🎛️</Text>
-            <Text style={[styles.cardHeaderText, { color: colors.textPrimary }]}>{t.liveGpsStatus}</Text>
-          </View>
-          <View style={[styles.modeBadge, isSimulating ? { backgroundColor: colors.softTeal } : styles.realGpsBadge]}>
-            <View style={!isSimulating && styles.pulseDot} />
-            <Text style={[styles.modeBadgeText, { color: isSimulating ? Colors.primary : Colors.secondary }]}>
-              {isSimulating ? "SIMULATION ACTIVE" : "REAL GPS LIVE"}
-            </Text>
-          </View>
-        </View>
-
-        {/* Mode Segment Switcher */}
-        <View style={[styles.toggleRow, { backgroundColor: colors.softTeal, borderColor: colors.cardBorder }]}>
-          <TouchableOpacity 
-            style={[styles.toggleBtn, !isSimulating && styles.toggleBtnActive]} 
-            onPress={() => setIsSimulating(false)}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.toggleBtnText, { color: !isSimulating ? '#FFFFFF' : colors.textPrimary }]}>🌍 Real GPS Mode</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.toggleBtn, isSimulating && styles.toggleBtnActive]} 
-            onPress={() => setIsSimulating(true)}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.toggleBtnText, { color: isSimulating ? '#FFFFFF' : colors.textPrimary }]}>🎛️ Geofence Simulator</Text>
-          </TouchableOpacity>
-        </View>
-
-        {isSimulating ? (
-          <View style={styles.simControls}>
-            <Text style={styles.inputLabel}>🏛️ Select Heritage Landmark:</Text>
-            <TouchableOpacity 
-              style={[styles.pickerButton, { backgroundColor: colors.softTeal, borderColor: colors.cardBorder }]} 
-              onPress={() => setShowPickerModal(true)}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.pickerButtonText, { color: colors.textPrimary }]}>
-                📍 {activePoi ? activePoi.title : "Select Landmark..."}
-              </Text>
-              <Text style={styles.pickerArrow}>▼</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.inputLabel}>📏 Simulated Distance:</Text>
-            <View style={styles.distanceTabs}>
-              {[5, 15, 50, 150].map((dist) => (
-                <TouchableOpacity
-                  key={dist}
-                  style={[styles.distanceTab, simDistance === dist && styles.distanceTabActive]}
-                  onPress={() => {
-                    setSimDistance(dist);
-                    if (dist <= (activePoi?.geofence_radius_meters || 20)) {
-                      setActivePoiId(activePoi.id);
-                    }
-                  }}
-                  activeOpacity={0.85}
-                >
-                  <Text style={[styles.distanceTabText, simDistance === dist && styles.distanceTabTextActive]}>
-                    {dist}m
-                  </Text>
-                </TouchableOpacity>
-              ))}
+          {/* ── SINGLE SLEEK WEBSITE NAVBAR ── */}
+          <View style={styles.singleSleekNavbar}>
+            <View style={styles.navLeftBrand}>
+              <Image source={require('../../assets/images/logo.jpeg')} style={styles.brandLogoImage} />
+              <View>
+                <View style={styles.brandTitleRow}>
+                  <Text style={styles.brandMainTitle}>PEARL EXPLORER</Text>
+                  <View style={styles.brandProBadge}>
+                    <Text style={styles.brandProBadgeText}>PRO</Text>
+                  </View>
+                </View>
+                <Text style={styles.brandSubTitle}>Sri Lanka Heritage & Travel Guide</Text>
+              </View>
             </View>
 
-            {/* Readout Coordinates Stats */}
-            <View style={styles.readoutBox}>
-              <View style={styles.readoutItem}>
-                <Text style={styles.readoutLabel}>Latitude</Text>
-                <Text style={styles.readoutValue}>{simCoords.latitude.toFixed(5)}° N</Text>
+            {/* Nav Links */}
+            <View style={styles.navCenterLinks}>
+              <TouchableOpacity style={[styles.navLinkItem, styles.navLinkActive]} activeOpacity={0.85}>
+                <Text style={[styles.navLinkText, styles.navLinkTextActive]}>🏠 Home</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.navLinkItem}
+                onPress={() => router.push('/map')}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.navLinkText}>🗺️ Interactive Map</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.navLinkItem}
+                onPress={() => router.push('/ai')}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.navLinkText}>🤖 AI Assistant</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.navLinkItem}
+                onPress={() => router.push('/transport')}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.navLinkText}>🚗 Transport</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Nav Right Actions */}
+            <View style={styles.navRightActions}>
+              <TouchableOpacity
+                style={styles.langSelectorPill}
+                onPress={() => setShowWelcomeModal(true)}
+                activeOpacity={0.85}
+              >
+                <Text style={{ fontSize: 15 }}>{currentLangObj.flag}</Text>
+                <Text style={styles.langSelectorCode}>{currentLangObj.code.toUpperCase()}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.explorerProfileBtn}
+                onPress={() => setShowWelcomeModal(true)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.explorerProfileText}>⚙️ Settings</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* ── HERO CONTENT LEFT ── */}
+          <View style={styles.heroMainBody}>
+            <View style={styles.heroTextSection}>
+              <View style={[styles.destinationBadge, { backgroundColor: activeDestination.badgeColor }]}>
+                <Text style={styles.destinationBadgeText}>{activeDestination.tag}</Text>
               </View>
-              <View style={styles.readoutItem}>
-                <Text style={styles.readoutLabel}>Longitude</Text>
-                <Text style={styles.readoutValue}>{simCoords.longitude.toFixed(5)}° E</Text>
+
+              <Text style={styles.heroMainHeading}>{activeDestination.title}</Text>
+              <Text style={styles.heroLocationSub}>📍 {activeDestination.province}</Text>
+
+              <Text style={styles.heroDescriptionText}>{activeDestination.summary}</Text>
+
+              {/* Action Buttons */}
+              <View style={styles.heroButtonGroup}>
+                <TouchableOpacity
+                  style={styles.btnPrimaryExplore}
+                  onPress={() => setShowPickerModal(true)}
+                  activeOpacity={0.88}
+                >
+                  <Text style={styles.btnPrimaryText}>📍 Explore Site</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.btnSecondaryStory}
+                  onPress={() => {
+                    const targetPoi = translatedPOIs.find((p) => p.id === activeDestination.audioPoiId);
+                    Alert.alert('🎧 Heritage Audio Guide', `Playing story for: ${targetPoi?.title || activeDestination.title}`);
+                  }}
+                  activeOpacity={0.88}
+                >
+                  <Text style={styles.btnSecondaryText}>🎧 Listen Story</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.btnIconMap}
+                  onPress={() => router.push('/map')}
+                  activeOpacity={0.88}
+                >
+                  <Text style={{ fontSize: 18 }}>🗺️</Text>
+                </TouchableOpacity>
               </View>
-              <View style={styles.readoutItem}>
-                <Text style={styles.readoutLabel}>Geofence Status</Text>
-                <Text style={[
-                  styles.readoutValue, 
-                  simDistance <= (activePoi?.geofence_radius_meters || 20) ? { color: Colors.secondary } : { color: Colors.accent }
-                ]}>
-                  {simDistance <= (activePoi?.geofence_radius_meters || 20) ? "INSIDE (Auto-play) 🟢" : "OUTSIDE (Locked) 🔴"}
+            </View>
+
+            {/* ── BOTTOM RIGHT INTERACTIVE THUMBNAIL CARDS ("CARD OPENING SYSTEM") ── */}
+            <View style={styles.cardOpeningFooter}>
+              <View style={styles.cardOpeningTopRow}>
+                <Text style={styles.cardOpeningSectionTitle}>FEATURED DESTINATIONS</Text>
+                <Text style={styles.cardOpeningCounter}>
+                  0{selectedHeroIndex + 1} <Text style={{ color: 'rgba(255,255,255,0.4)' }}>/ 0{HERO_DESTINATIONS.length}</Text>
                 </Text>
               </View>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.realCoordsBox}>
-            <Text style={styles.gpsCoords}>
-              {currentLocation
-                ? `📍 ${currentLocation.latitude.toFixed(5)}° N  |  ${currentLocation.longitude.toFixed(5)}° E`
-                : 'Searching for GPS Lock...'}
-            </Text>
-            <View style={styles.geofenceBadge}>
-              <Text style={styles.geofenceBadgeText}>⚡ Auto-trigger radius: 15–20 meters</Text>
-            </View>
-          </View>
-        )}
-      </View>
 
-      {/* Landmark Selector Modal Popup */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.thumbnailCarouselContainer}
+              >
+                {HERO_DESTINATIONS.map((dest, idx) => {
+                  const isActive = idx === selectedHeroIndex;
+                  return (
+                    <TouchableOpacity
+                      key={dest.id}
+                      style={[
+                        styles.thumbnailCard,
+                        isActive && styles.thumbnailCardActive,
+                      ]}
+                      onPress={() => handleSelectDestination(idx)}
+                      activeOpacity={0.85}
+                    >
+                      <Image source={dest.image} style={styles.thumbnailCardImage} />
+                      <View style={styles.thumbnailCardOverlay}>
+                        <View style={styles.ratingBadgePill}>
+                          <Text style={styles.ratingBadgeText}>{dest.rating}</Text>
+                        </View>
+                        <Text style={styles.thumbnailCardTitle} numberOfLines={1}>
+                          {dest.title}
+                        </Text>
+                        <Text style={styles.thumbnailCardSub} numberOfLines={1}>
+                          {dest.province.split('·')[0]}
+                        </Text>
+                      </View>
+
+                      {isActive && (
+                        <View style={styles.activeIndicatorRing}>
+                          <Text style={styles.activeIndicatorText}>ACTIVE</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+        </View>
+      </Animated.View>
+
+      {/* Heritage Landmark Picker Modal */}
       <Modal
         visible={showPickerModal}
         transparent={true}
         animationType="fade"
         onRequestClose={() => setShowPickerModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>🏛️ Select Heritage Landmark</Text>
-              <TouchableOpacity onPress={() => setShowPickerModal(false)} style={styles.modalCloseBtn}>
-                <Text style={styles.modalCloseText}>✕</Text>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalTopBar}>
+              <Text style={styles.modalTitleText}>🏛️ Select Heritage Landmark</Text>
+              <TouchableOpacity onPress={() => setShowPickerModal(false)} style={styles.modalCloseButton}>
+                <Text style={styles.modalCloseIcon}>✕</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.modalBodyList} showsVerticalScrollIndicator={false}>
               {translatedPOIs.map((poi) => (
                 <TouchableOpacity
                   key={poi.id}
-                  style={[styles.modalItem, activePoiId === poi.id && styles.modalItemActive]}
+                  style={[styles.modalItemRow, activePoiId === poi.id && styles.modalItemRowActive]}
                   onPress={() => {
                     setActivePoiId(poi.id);
                     setShowPickerModal(false);
-                    Alert.alert('📍 Simulator Engaged', `Simulating arrival near: ${poi.title}`);
+                    Alert.alert('📍 Landmark Selected', `Exploring: ${poi.title}`);
                   }}
                 >
-                  <Text style={[styles.modalItemText, activePoiId === poi.id && styles.modalItemTextActive]}>
+                  <Text style={[styles.modalItemTitle, activePoiId === poi.id && styles.modalItemTitleActive]}>
                     📍 {poi.title}
                   </Text>
-                  <Text style={styles.modalItemCoords}>
-                    Radius: {poi.geofence_radius_meters}m · {poi.latitude}° N, {poi.longitude}° E
+                  <Text style={styles.modalItemCoordsText}>
+                    Geofence Radius: {poi.geofence_radius_meters}m · {poi.latitude}° N, {poi.longitude}° E
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -421,763 +408,394 @@ export default function VirtualGuideScreen() {
           </View>
         </View>
       </Modal>
-
-      {/* ── Active Audio Guide / Video Explorer ── */}
-      {activePoi && (!isSimulating || simDistance <= activePoi.geofence_radius_meters) ? (
-        <View style={styles.audioSection}>
-          <Text style={styles.sectionLabel}>
-            {activePoi.video_url ? "🎬 Active Video Explorer" : t.activeAudioStory}
-          </Text>
-          {activePoi.video_url ? (
-            <VideoPlayerCard
-              title={activePoi.title}
-              historicalSummary={activePoi.historical_summary}
-              videoUrl={activePoi.video_url}
-            />
-          ) : (
-            <AudioPlayerCard
-              title={activePoi.title}
-              historicalSummary={activePoi.historical_summary}
-              audioUrl={activePoi.audio_url}
-            />
-          )}
-        </View>
-      ) : activePoi ? (
-        <View style={styles.audioSection}>
-          <Text style={styles.sectionLabel}>
-            {activePoi.video_url ? "🎬 Active Video Explorer" : t.activeAudioStory}
-          </Text>
-          <View style={[styles.glassCard, styles.lockedCard]}>
-            <Text style={styles.lockedIcon}>🔏</Text>
-            <Text style={styles.lockedTitle}>
-              {activePoi.video_url ? "Video Guide Locked" : "Audio Guide Locked"}
-            </Text>
-            <Text style={styles.lockedText}>
-              You are currently simulated at {simDistance}m away from the landmark. Walk within {activePoi.geofence_radius_meters}m to automatically unlock and play this {activePoi.video_url ? "video" : "story"}!
-            </Text>
-          </View>
-        </View>
-      ) : null}
-
-      {/* ── Rich Heritage Sites Section (Places, Story, UNESCO, Dress Codes, Scam Warnings, Maps link) ── */}
-      <View style={styles.poiSection}>
-        <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>🌴 Heritage Places Explorer</Text>
-        <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
-          Explore UNESCO sites, stories, dress code rules, ticket prices ({selectedCurrency}), & Google Maps links.
-        </Text>
-
-        {filteredSites.length > 0 ? (
-          filteredSites.map((site) => (
-            <HeritageSiteCard
-              key={site.id}
-              site={site}
-              currency={selectedCurrency}
-            />
-          ))
-        ) : (
-          <View style={[styles.glassCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder, padding: 24, alignItems: 'center' }]}>
-            <Text style={{ fontSize: 32, marginBottom: 8 }}>🔍</Text>
-            <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.textPrimary }}>No matching heritage sites found</Text>
-            <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }}>Try clearing your search query or selecting 'All' category.</Text>
-          </View>
-        )}
-      </View>
-
-      {/* ── Brand Footer ── */}
-      <View style={styles.footerContainer}>
-        <View style={styles.footerBrandRow}>
-          <Image source={require('../../assets/images/logo.jpeg')} style={styles.footerLogo} />
-          <View>
-            <Text style={styles.footerBrandTitle}>PEARL EXPLORER</Text>
-            <Text style={styles.footerBrandSub}>Sri Lanka Heritage & Smart GPS Audio Guide</Text>
-          </View>
-        </View>
-
-        <View style={styles.footerDivider} />
-
-        <View style={styles.footerTagRow}>
-          <View style={[styles.footerTag, { backgroundColor: Colors.primary + '30' }]}>
-            <Text style={[styles.footerTagText, { color: '#00D1DE' }]}>🌊 Deep Teal</Text>
-          </View>
-          <View style={[styles.footerTag, { backgroundColor: Colors.accent + '30' }]}>
-            <Text style={[styles.footerTagText, { color: '#FFA552' }]}>🌅 Sunset Orange</Text>
-          </View>
-          <View style={[styles.footerTag, { backgroundColor: Colors.secondary + '30' }]}>
-            <Text style={[styles.footerTagText, { color: '#2CE09C' }]}>🌴 Tropical Green</Text>
-          </View>
-        </View>
-
-        <Text style={styles.footerCopyright}>
-          © 2026 Pearl Explorer Platform · Crafted for Sri Lankan Tourism & Culture
-        </Text>
-      </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
-
-  // Control Panel (Search, Filter, Currency)
-  controlPanelCard: {
-    marginHorizontal: 16,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    ...Shadow.card,
+  fullScreenWrapper: {
+    flex: 1,
+    backgroundColor: '#0A0E14',
   },
-  searchBox: {
+  heroFullContainer: {
+    flex: 1,
+    minHeight: SCREEN_HEIGHT,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  heroFullImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  heroGradientOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(10, 14, 20, 0.58)',
+    justifyContent: 'space-between',
+    paddingHorizontal: Platform.OS === 'web' ? 40 : 20,
+    paddingTop: Platform.OS === 'ios' ? 50 : 24,
+    paddingBottom: 28,
+  },
+
+  // ── SINGLE SLEEK WEBSITE NAVBAR ──
+  singleSleekNavbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
-    borderWidth: 1,
-    marginBottom: 14,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  controlLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-    marginBottom: 8,
-  },
-  categoryChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    marginRight: 8,
-    borderWidth: 1,
-  },
-  activeCategoryChip: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  categoryChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  activeCategoryChipText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-  currencyChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    marginRight: 6,
-    borderWidth: 1,
-  },
-  activeCurrencyChip: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
-  },
-  currencyChipText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  activeCurrencyChipText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-
-  // Navbar & Header
-  heroHeader: {
-    backgroundColor: '#FFFFFF',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    borderRadius: 100,
     paddingHorizontal: 20,
-    paddingTop: 72,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-    marginBottom: 16,
+    paddingVertical: 10,
     borderWidth: 1,
-    borderColor: 'rgba(0, 140, 149, 0.15)',
-    shadowColor: Colors.textDark,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 4,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    ...Platform.select({
+      web: { backdropFilter: 'blur(16px)' as any },
+    }),
   },
-  heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  logoRing: {
-    padding: 2,
-    borderRadius: 26,
-    borderWidth: 2,
+  navLeftBrand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  brandLogoImage: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1.5,
     borderColor: Colors.primary,
   },
-  logo: { width: 44, height: 44, borderRadius: 22 },
-  titleTagRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  heroTitle: { fontSize: 20, fontWeight: '900', color: Colors.textDark, letterSpacing: 0.3 },
-  proBadge: {
+  brandTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  brandMainTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  brandProBadge: {
     backgroundColor: Colors.accent,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
   },
-  proBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '800' },
-  heroSub: { fontSize: 11, color: Colors.textSecondary, marginTop: 1 },
-  langPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: Colors.softTeal, borderRadius: 100,
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderWidth: 1.5, borderColor: Colors.primary,
-  },
-  langPillFlag: { fontSize: 18 },
-  langPillCode: { fontSize: 12, fontWeight: '800', color: Colors.primary },
-
-  profileStrip: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: Colors.softTeal,
-    borderRadius: 14, padding: 12,
-    borderWidth: 1, borderColor: 'rgba(0, 140, 149, 0.2)',
-  },
-  profileDot: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(0, 140, 149, 0.2)',
-  },
-  profileLangText: { fontSize: 12, color: Colors.textSecondary },
-  profileLangBold: { fontWeight: '700', color: Colors.textDark },
-  profileEmail: { fontSize: 11, color: Colors.primary, marginTop: 2, fontWeight: '600' },
-  settingsBtn: {
-    backgroundColor: Colors.accent, borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 8,
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  settingsBtnText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
-
-  // Travel Hero Banner
-  heroBannerCard: {
-    marginHorizontal: 16,
-    marginBottom: 20,
-    borderRadius: 26,
-    overflow: 'hidden',
-    height: 240,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 140, 149, 0.2)',
-    shadowColor: Colors.textDark,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 14,
-    elevation: 5,
-  },
-  heroBannerImage: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-  },
-  heroBannerOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(30, 22, 22, 0.65)',
-    padding: 22,
-    justifyContent: 'flex-end',
-  },
-  heroBadge: {
-    backgroundColor: Colors.accent,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginBottom: 8,
-  },
-  heroBadgeText: {
+  brandProBadgeText: {
     color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  heroBannerHeading: {
-    color: '#FFFFFF',
-    fontSize: 22,
+    fontSize: 8,
     fontWeight: '900',
+  },
+  brandSubTitle: {
+    color: '#94A3B8',
+    fontSize: 10,
+    marginTop: 1,
+  },
+
+  // Nav Links
+  navCenterLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    display: SCREEN_WIDTH < 600 ? 'none' : 'flex',
+  },
+  navLinkItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 100,
+  },
+  navLinkActive: {
+    backgroundColor: Colors.primary,
+  },
+  navLinkText: {
+    color: '#CBD5E1',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  navLinkTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+
+  // Nav Right Actions
+  navRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  langSelectorPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  langSelectorCode: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  explorerProfileBtn: {
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 100,
+  },
+  explorerProfileText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+
+  // ── HERO MAIN BODY ──
+  heroMainBody: {
+    flex: 1,
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  heroTextSection: {
+    maxWidth: Platform.OS === 'web' ? 620 : '100%',
+    marginTop: 30,
+  },
+  destinationBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  destinationBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  heroMainHeading: {
+    color: '#FFFFFF',
+    fontSize: Platform.OS === 'web' ? 42 : 30,
+    fontWeight: '900',
+    letterSpacing: 1,
+    textShadowColor: 'rgba(0, 0, 0, 0.85)',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 8,
     marginBottom: 6,
-    textShadowColor: 'rgba(0,0,0,0.6)',
+  },
+  heroLocationSub: {
+    color: '#BAE6FD',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 14,
+  },
+  heroDescriptionText: {
+    color: '#F1F5F9',
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 24,
+    textShadowColor: 'rgba(0, 0, 0, 0.65)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
-  heroBannerSub: {
-    color: '#E8F7F5',
-    fontSize: 12.5,
-    lineHeight: 18,
-    marginBottom: 16,
-  },
-  heroBtnRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  ctaPrimaryBtn: {
-    backgroundColor: Colors.accent,
-    paddingHorizontal: 18,
-    paddingVertical: 11,
-    borderRadius: 100,
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  ctaPrimaryText: {
-    color: '#FFFFFF',
-    fontSize: 12.5,
-    fontWeight: '800',
-  },
-  ctaSecondaryBtn: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 18,
-    paddingVertical: 11,
-    borderRadius: 100,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  ctaSecondaryText: {
-    color: '#FFFFFF',
-    fontSize: 12.5,
-    fontWeight: '800',
-  },
-
-  // GPS Card & Simulator
-  glassCard: {
-    marginHorizontal: 16,
-    borderRadius: 22,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 140, 149, 0.18)',
-    backgroundColor: '#FFFFFF',
-    shadowColor: Colors.textDark,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  simulatorCard: { marginBottom: 20, borderLeftWidth: 5, borderLeftColor: Colors.primary },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  cardHeaderText: { fontSize: 15, fontWeight: '800', color: Colors.textDark },
-  modeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 100,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  activeSimBadge: {
-    backgroundColor: Colors.softTeal,
-  },
-  realGpsBadge: {
-    backgroundColor: 'rgba(25, 169, 116, 0.15)',
-  },
-  modeBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.secondary },
-
-  toggleRow: {
-    flexDirection: 'row',
-    backgroundColor: Colors.softTeal,
-    borderRadius: 12,
-    padding: 3,
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 140, 149, 0.18)',
-  },
-  toggleBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  toggleBtnActive: {
-    backgroundColor: Colors.primary,
-  },
-  toggleBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.textDark,
-  },
-  toggleBtnTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-  simControls: {
-    marginTop: 6,
-  },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: Colors.primary,
-    marginTop: 8,
-    marginBottom: 6,
-    textTransform: 'uppercase',
-  },
-  pickerButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: Colors.softTeal,
-    borderWidth: 1.5,
-    borderColor: 'rgba(0, 140, 149, 0.22)',
-    borderRadius: 12,
-    padding: 13,
-    marginBottom: 10,
-  },
-  pickerButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.textDark,
-  },
-  pickerArrow: {
-    fontSize: 10,
-    color: Colors.primary,
-  },
-  distanceTabs: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 14,
-  },
-  distanceTab: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(0, 140, 149, 0.2)',
-  },
-  distanceTabActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  distanceTabText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.textDark,
-  },
-  distanceTabTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-  readoutBox: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-    backgroundColor: Colors.softTeal,
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 140, 149, 0.2)',
-  },
-  readoutItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  readoutLabel: {
-    fontSize: 9,
-    color: Colors.textMuted,
-    marginBottom: 3,
-    textTransform: 'uppercase',
-    fontWeight: '700',
-  },
-  readoutValue: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: Colors.textDark,
-  },
-  realCoordsBox: {
-    paddingVertical: 10,
-  },
-
-  // Modal Picker
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(30, 22, 22, 0.75)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    width: '100%',
-    maxHeight: '75%',
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 140, 149, 0.2)',
-    backgroundColor: Colors.softTeal,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.textDark,
-  },
-  modalCloseBtn: {
-    padding: 4,
-  },
-  modalCloseText: {
-    color: Colors.textDark,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  modalList: {
-    padding: 10,
-  },
-  modalItem: {
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 8,
-    backgroundColor: Colors.softTeal,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  modalItemActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.softTeal,
-  },
-  modalItemText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.textDark,
-  },
-  modalItemTextActive: {
-    color: Colors.primary,
-  },
-  modalItemCoords: {
-    fontSize: 10,
-    color: Colors.textSecondary,
-    marginTop: 4,
-  },
-
-  // Locked Card
-  lockedCard: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 26,
-    paddingHorizontal: 16,
-    borderStyle: 'dashed',
-    borderWidth: 2,
-    borderColor: Colors.accent,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-  },
-  lockedIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  lockedTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.textDark,
-    marginBottom: 6,
-  },
-  lockedText: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 19,
-  },
-
-  gpsCoords: { fontSize: 14, fontWeight: '600', color: Colors.primary, fontFamily: 'monospace' },
-  geofenceBadge: { marginTop: 8, backgroundColor: Colors.softTeal, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, alignSelf: 'flex-start' },
-  geofenceBadgeText: { fontSize: 12, color: Colors.primary, fontWeight: '600' },
-
-  // Sections
-  sectionLabel: { fontSize: 18, fontWeight: '900', color: Colors.textDark, marginBottom: 4, paddingHorizontal: 16 },
-  sectionSub: { fontSize: 12.5, color: Colors.textSecondary, marginBottom: 16, paddingHorizontal: 16 },
-  audioSection: { marginBottom: 20 },
-  poiSection: { marginBottom: 20 },
-
-  // Destination Cover Cards
-  destinationCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 140, 149, 0.18)',
-    shadowColor: Colors.textDark,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    elevation: 4,
-  },
-  destImageWrapper: {
-    width: '100%',
-    height: 160,
-    backgroundColor: '#000',
-  },
-  destCoverImage: {
-    width: '100%',
-    height: '100%',
-  },
-  destOverlayGradient: {
-    position: 'absolute',
-    left: 0, right: 0, bottom: 0, height: 60,
-    backgroundColor: 'rgba(0,0,0,0.15)',
-  },
-  destBadgeTag: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 100,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  destBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  destActiveChip: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: Colors.accent,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 100,
-  },
-  destActiveChipText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  destBody: {
-    padding: 16,
-  },
-  destTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  destTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.textDark,
-    flex: 1,
-    marginRight: 8,
-  },
-  ratingBadge: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: Colors.accent,
-  },
-  destSummary: {
-    fontSize: 12.5,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  destFooterRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: Colors.softTeal,
-    paddingTop: 10,
-  },
-  destCoordsText: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    fontWeight: '600',
-  },
-  destPlayBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 100,
-  },
-  destPlayBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-
-  // Footer (Deep Brown #261D1D)
-  footerContainer: {
-    backgroundColor: '#261D1D',
-    paddingVertical: 32,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    marginTop: 24,
-    borderTopWidth: 3,
-    borderTopColor: Colors.primary,
-  },
-  footerBrandRow: {
+  heroButtonGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 14,
   },
-  footerLogo: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-  },
-  footerBrandTitle: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  footerBrandSub: {
-    color: '#D1D1D6',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  footerDivider: {
-    width: 60,
-    height: 2,
+  btnPrimaryExplore: {
     backgroundColor: Colors.accent,
-    marginVertical: 14,
-    borderRadius: 1,
-  },
-  footerTagRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginVertical: 10,
-  },
-  footerTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingHorizontal: 24,
+    paddingVertical: 13,
     borderRadius: 100,
+    elevation: 4,
   },
-  footerTagText: {
-    fontSize: 10,
+  btnPrimaryText: {
+    color: '#FFFFFF',
+    fontSize: 13.5,
     fontWeight: '800',
   },
-  footerCopyright: {
-    color: '#999999',
+  btnSecondaryStory: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 13,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  btnSecondaryText: {
+    color: '#FFFFFF',
+    fontSize: 13.5,
+    fontWeight: '800',
+  },
+  btnIconMap: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+  },
+
+  // ── CARD OPENING FOOTER CAROUSEL ──
+  cardOpeningFooter: {
+    marginTop: 'auto',
+    paddingTop: 20,
+  },
+  cardOpeningTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  cardOpeningSectionTitle: {
+    color: '#94A3B8',
     fontSize: 11,
-    textAlign: 'center',
-    marginTop: 10,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+  },
+  cardOpeningCounter: {
+    color: Colors.accent,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  thumbnailCarouselContainer: {
+    gap: 12,
+    paddingBottom: 8,
+  },
+  thumbnailCard: {
+    width: 140,
+    height: 145,
+    borderRadius: 18,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: '#1E293B',
+    position: 'relative',
+  },
+  thumbnailCardActive: {
+    borderColor: Colors.accent,
+    borderWidth: 3,
+    transform: [{ translateY: -4 }],
+  },
+  thumbnailCardImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  thumbnailCardOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    padding: 10,
+    justifyContent: 'flex-end',
+  },
+  ratingBadgePill: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  ratingBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '900',
+  },
+  thumbnailCardTitle: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  thumbnailCardSub: {
+    color: '#CBD5E1',
+    fontSize: 9.5,
+    marginTop: 2,
+  },
+  activeIndicatorRing: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  activeIndicatorText: {
+    color: '#FFFFFF',
+    fontSize: 8.5,
+    fontWeight: '900',
+  },
+
+  // Modal
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#1E293B',
+    borderRadius: 24,
+    width: Platform.OS === 'web' ? 500 : '100%',
+    maxHeight: '80%',
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    overflow: 'hidden',
+  },
+  modalTopBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 18,
+    backgroundColor: '#0F172A',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalTitleText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalCloseIcon: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  modalBodyList: {
+    padding: 12,
+  },
+  modalItemRow: {
+    padding: 14,
+    borderRadius: 14,
+    marginBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  modalItemRowActive: {
+    borderColor: Colors.primary,
+    backgroundColor: 'rgba(0, 209, 222, 0.15)',
+  },
+  modalItemTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  modalItemTitleActive: {
+    color: Colors.primary,
+  },
+  modalItemCoordsText: {
+    fontSize: 10.5,
+    color: '#94A3B8',
+    marginTop: 4,
   },
 });

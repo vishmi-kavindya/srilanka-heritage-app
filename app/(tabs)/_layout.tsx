@@ -5,7 +5,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { getTranslation } from '../../constants/i18n';
-import LiquidGlassTabBar from '../../components/LiquidGlassTabBar';
 
 export default function TabLayout() {
   const { lang } = useLanguage();
@@ -14,7 +13,7 @@ export default function TabLayout() {
 
   return (
     <View style={styles.fullContainer}>
-      {/* Full-Screen Dynamic Background Gradient (Sunset in Light Mode, Burgundy Velvet in Dark Mode) */}
+      {/* Full-Screen Dynamic Background Gradient */}
       <LinearGradient
         colors={colors.bgGradient}
         start={{ x: 0, y: 0 }}
@@ -23,16 +22,10 @@ export default function TabLayout() {
       />
 
       <Tabs
-        tabBar={(props) => <LiquidGlassTabBar {...props} />}
         screenOptions={{
           headerShown: false,
+          tabBarStyle: { display: 'none' },
           sceneStyle: { backgroundColor: 'transparent' },
-          tabBarStyle: {
-            position: 'absolute',
-            backgroundColor: 'transparent',
-            borderTopWidth: 0,
-            elevation: 0,
-          },
         }}
       >
         <Tabs.Screen name="index" options={{ title: t.virtualGuideTab || 'Guide' }} />
