@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, Platform, TextInput, Linking } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { FALLBACK_HERITAGE_SITES, HeritageSite, getTranslatedHeritageSites } from '../../constants/heritageData';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -530,30 +531,48 @@ export default function HeritageMapScreen() {
     }
   };
 
-  return (
-    <ScrollView style={[styles.container, { backgroundColor: 'transparent' }]} contentContainerStyle={{ paddingBottom: 40 }}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.headerBg, borderColor: colors.cardBorder }]}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{t.mapHeader}</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t.mapSub}</Text>
-      </View>
+  const pageBg = isDark ? '#071412' : '#EBF9F6';
 
-      {/* Search Input Bar */}
-      <View style={[styles.searchContainer, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
-        <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
-        <TextInput
-          style={[styles.searchInput, { color: colors.textPrimary }]}
-          placeholder="Search heritage site, city, or district..."
-          placeholderTextColor={colors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearchBtn}>
-            <Text style={{ color: colors.textSecondary, fontWeight: '800' }}>✕</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+  return (
+    <ScrollView style={[styles.container, { backgroundColor: pageBg }]} contentContainerStyle={{ paddingBottom: 40 }}>
+      {/* 🗺️ Immersive Hero Header */}
+      <LinearGradient
+        colors={['#0A2E2A', '#0E4A43', '#0D5C50', pageBg]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.heroHeader}
+      >
+        {/* Decorative Glow Orbs */}
+        <View style={[styles.glowOrb, { top: -30, right: 20, backgroundColor: 'rgba(25,169,116,0.25)', width: 120, height: 120 }]} />
+        <View style={[styles.glowOrb, { top: 10, left: -20, backgroundColor: 'rgba(0,140,149,0.18)', width: 90, height: 90 }]} />
+
+        <View style={styles.heroHeaderContent}>
+          <View style={styles.heroBadgeRow}>
+            <View style={styles.heroBadge}>
+              <Text style={styles.heroBadgeText}>🗺️ INTERACTIVE MAP</Text>
+            </View>
+          </View>
+          <Text style={styles.heroTitle}>{t.mapHeader}</Text>
+          <Text style={styles.heroSubtitle}>{t.mapSub}</Text>
+        </View>
+
+        {/* Glassmorphic Search Bar inside Hero */}
+        <View style={styles.heroSearchContainer}>
+          <Text style={{ fontSize: 16, marginRight: 10, opacity: 0.8 }}>🔍</Text>
+          <TextInput
+            style={styles.heroSearchInput}
+            placeholder="Search heritage site, city, or district..."
+            placeholderTextColor="rgba(255,255,255,0.5)"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearchBtn}>
+              <Text style={{ color: 'rgba(255,255,255,0.7)', fontWeight: '800', fontSize: 16 }}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </LinearGradient>
 
       {/* Search Results Dropdown */}
       {searchQuery.length > 0 && filteredSites.length > 0 && (
@@ -798,15 +817,76 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Header
-  header: {
-    paddingTop: 56, paddingBottom: 24, paddingHorizontal: 20,
-    borderBottomLeftRadius: 32, borderBottomRightRadius: 32,
+  // 🗺️ Hero Header
+  heroHeader: {
+    paddingTop: Platform.OS === 'web' ? 70 : 60,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     marginBottom: 20,
-    borderWidth: 1,
+    overflow: 'hidden',
+    position: 'relative',
   },
-  title: { fontSize: 24, fontWeight: '800' },
-  subtitle: { fontSize: 12, marginTop: 4 },
+  heroHeaderContent: {
+    marginBottom: 18,
+  },
+  heroBadgeRow: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  heroBadge: {
+    backgroundColor: 'rgba(25, 169, 116, 0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(25, 169, 116, 0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  heroBadgeText: {
+    color: '#5FFFB5',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+  },
+  heroTitle: {
+    color: '#FFFFFF',
+    fontSize: Platform.OS === 'web' ? 32 : 26,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+    marginBottom: 6,
+  },
+  heroSubtitle: {
+    color: 'rgba(200, 255, 230, 0.8)',
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 18,
+  },
+  heroSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    ...Platform.select({ web: { backdropFilter: 'blur(10px)' as any } }),
+  },
+  heroSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  glowOrb: {
+    position: 'absolute',
+    borderRadius: 200,
+    opacity: 0.8,
+  },
 
   // Map Banner
   webMapContainer: {

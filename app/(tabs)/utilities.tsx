@@ -7,7 +7,9 @@ import {
   TextInput,
   TouchableOpacity,
   Linking,
+  Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getTranslatedHeritageSites } from '../../constants/heritageData';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
@@ -34,12 +36,32 @@ export default function UtilitiesSafetyScreen() {
     maximumFractionDigits: 2,
   });
 
+  const pageBg = isDark ? '#000A1A' : '#EEF6FF';
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: 'transparent' }]} contentContainerStyle={{ paddingTop: 60, paddingBottom: 40 }}>
-      <View style={[styles.header, { backgroundColor: colors.headerBg, borderColor: colors.cardBorder }]}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{t.utilitiesTitle}</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t.utilitiesSub}</Text>
-      </View>
+    <ScrollView style={[styles.container, { backgroundColor: pageBg }]} contentContainerStyle={{ paddingBottom: 40 }}>
+      {/* 🛡️ Immersive Hero Header */}
+      <LinearGradient
+        colors={['#001A38', '#003268', '#004E99', pageBg]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.heroHeader}
+      >
+        {/* Decorative Glow Orbs */}
+        <View style={[styles.glowOrb, { top: -50, right: 0, backgroundColor: 'rgba(0,140,149,0.3)', width: 160, height: 160 }]} />
+        <View style={[styles.glowOrb, { top: 20, left: -20, backgroundColor: 'rgba(30,120,220,0.2)', width: 100, height: 100 }]} />
+        <View style={[styles.glowOrb, { bottom: -15, right: 100, backgroundColor: 'rgba(0,78,153,0.25)', width: 80, height: 80 }]} />
+
+        <View style={styles.heroHeaderContent}>
+          <View style={styles.heroBadgeRow}>
+            <View style={styles.heroBadge}>
+              <Text style={styles.heroBadgeText}>🛡️ SAFETY & TOOLS</Text>
+            </View>
+          </View>
+          <Text style={styles.heroTitle}>{t.utilitiesTitle}</Text>
+          <Text style={styles.heroSubtitle}>{t.utilitiesSub}</Text>
+        </View>
+      </LinearGradient>
 
       {/* Currency Converter */}
       <View style={[styles.sectionCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
@@ -155,9 +177,60 @@ export default function UtilitiesSafetyScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
-  header: { paddingTop: 54, paddingBottom: 20, paddingHorizontal: 20, marginBottom: 6 },
-  title: { fontSize: 24, fontWeight: '800' },
-  subtitle: { fontSize: 12, marginTop: 4 },
+
+  // 🛡️ Hero Header
+  heroHeader: {
+    paddingTop: Platform.OS === 'web' ? 70 : 60,
+    paddingBottom: 28,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    marginBottom: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroHeaderContent: {
+    position: 'relative',
+    zIndex: 1,
+  },
+  heroBadgeRow: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  heroBadge: {
+    backgroundColor: 'rgba(0, 140, 149, 0.35)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 200, 220, 0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  heroBadgeText: {
+    color: '#80EEFF',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+  },
+  heroTitle: {
+    color: '#FFFFFF',
+    fontSize: Platform.OS === 'web' ? 32 : 26,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+    marginBottom: 6,
+  },
+  heroSubtitle: {
+    color: 'rgba(170, 230, 255, 0.85)',
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 18,
+  },
+  glowOrb: {
+    position: 'absolute',
+    borderRadius: 200,
+  },
   sectionCard: {
     borderRadius: 20, padding: 18, marginHorizontal: 16,
     marginBottom: 16, borderWidth: 1, ...Shadow.card,

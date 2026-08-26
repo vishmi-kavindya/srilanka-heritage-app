@@ -11,6 +11,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
@@ -21,7 +22,7 @@ const BACKEND_URL = Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http:/
 
 export default function AiSuiteScreen() {
   const { lang } = useLanguage();
-  const { colors } = useAppTheme();
+  const { isDark, colors } = useAppTheme();
   const t = getTranslation(lang);
   const [activeTab, setActiveTab] = useState<'scanner' | 'chatbot'>('scanner');
 
@@ -154,13 +155,32 @@ export default function AiSuiteScreen() {
     }
   };
 
+  const pageBg = isDark ? '#0D0520' : '#F0EEFF';
+
   return (
-    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
-      {/* Screen Title */}
-      <View style={[styles.header, { backgroundColor: colors.headerBg, borderColor: colors.cardBorder }]}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{t.aiHeader}</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t.aiSub}</Text>
-      </View>
+    <View style={[styles.container, { backgroundColor: pageBg }]}>
+      {/* ✨ Immersive Hero Header */}
+      <LinearGradient
+        colors={['#1A0538', '#2D0A6B', '#3D1585', pageBg]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.heroHeader}
+      >
+        {/* Decorative Glow Orbs */}
+        <View style={[styles.glowOrb, { top: -40, right: -10, backgroundColor: 'rgba(105,86,216,0.35)', width: 140, height: 140 }]} />
+        <View style={[styles.glowOrb, { top: 20, left: -30, backgroundColor: 'rgba(180,120,255,0.2)', width: 100, height: 100 }]} />
+        <View style={[styles.glowOrb, { bottom: -20, right: 80, backgroundColor: 'rgba(105,86,216,0.15)', width: 80, height: 80 }]} />
+
+        <View style={styles.heroHeaderContent}>
+          <View style={styles.heroBadgeRow}>
+            <View style={styles.heroBadge}>
+              <Text style={styles.heroBadgeText}>✨ AI HERITAGE SUITE</Text>
+            </View>
+          </View>
+          <Text style={styles.heroTitle}>{t.aiHeader}</Text>
+          <Text style={styles.heroSubtitle}>{t.aiSub}</Text>
+        </View>
+      </LinearGradient>
 
       {/* Segment Switcher */}
       <View style={[styles.segmentContainer, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
@@ -344,10 +364,61 @@ export default function AiSuiteScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent', paddingTop: 54 },
-  header: { paddingHorizontal: 20, paddingBottom: 12, marginBottom: 10 },
-  title: { fontSize: 24, fontWeight: '800' },
-  subtitle: { fontSize: 12, marginTop: 4 },
+  container: { flex: 1, backgroundColor: 'transparent' },
+
+  // ✨ Hero Header
+  heroHeader: {
+    paddingTop: Platform.OS === 'web' ? 70 : 60,
+    paddingBottom: 28,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    marginBottom: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroHeaderContent: {
+    position: 'relative',
+    zIndex: 1,
+  },
+  heroBadgeRow: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  heroBadge: {
+    backgroundColor: 'rgba(105, 86, 216, 0.35)',
+    borderWidth: 1,
+    borderColor: 'rgba(180, 120, 255, 0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  heroBadgeText: {
+    color: '#D4AAFF',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+  },
+  heroTitle: {
+    color: '#FFFFFF',
+    fontSize: Platform.OS === 'web' ? 32 : 26,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+    marginBottom: 6,
+  },
+  heroSubtitle: {
+    color: 'rgba(220, 200, 255, 0.85)',
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 18,
+  },
+  glowOrb: {
+    position: 'absolute',
+    borderRadius: 200,
+  },
   segmentContainer: {
     flexDirection: 'row',
     borderRadius: 16, padding: 4, marginHorizontal: 16, marginBottom: 16,

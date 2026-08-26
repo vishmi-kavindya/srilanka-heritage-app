@@ -1,36 +1,31 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Tabs } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { getTranslation } from '../../constants/i18n';
+import LiquidGlassTabBar from '../../components/LiquidGlassTabBar';
 
 export default function TabLayout() {
   const { lang } = useLanguage();
-  const { colors } = useAppTheme();
+  const { isDark } = useAppTheme();
   const t = getTranslation(lang);
 
-  return (
-    <View style={styles.fullContainer}>
-      {/* Full-Screen Dynamic Background Gradient */}
-      <LinearGradient
-        colors={colors.bgGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
+  // Solid dark/neutral base — prevents any bleed-through between tabs
+  const sceneBg = isDark ? '#0A0A12' : '#F8F4F0';
 
+  return (
+    <View style={[styles.fullContainer, { backgroundColor: sceneBg }]}>
       <Tabs
+        tabBar={(props) => <LiquidGlassTabBar {...props} />}
         screenOptions={{
           headerShown: false,
-          tabBarStyle: { display: 'none' },
-          sceneStyle: { backgroundColor: 'transparent' },
+          sceneStyle: { backgroundColor: sceneBg },
         }}
       >
-        <Tabs.Screen name="index" options={{ title: t.virtualGuideTab || 'Guide' }} />
-        <Tabs.Screen name="map"   options={{ title: t.mapTab || 'Map' }} />
-        <Tabs.Screen name="ai"    options={{ title: t.aiTab || 'AI' }} />
+        <Tabs.Screen name="index"     options={{ title: t.virtualGuideTab || 'Guide' }} />
+        <Tabs.Screen name="map"       options={{ title: t.mapTab || 'Map' }} />
+        <Tabs.Screen name="ai"        options={{ title: t.aiTab || 'AI' }} />
         <Tabs.Screen name="transport" options={{ title: t.transportTab || 'Transport' }} />
         <Tabs.Screen name="utilities" options={{ title: t.utilitiesTab || 'Utils' }} />
       </Tabs>
@@ -41,6 +36,5 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   fullContainer: {
     flex: 1,
-    position: 'relative',
   },
 });

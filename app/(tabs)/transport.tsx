@@ -6,7 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
+  Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { FALLBACK_ROUTES, FALLBACK_RENTALS } from '../../constants/heritageData';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
@@ -41,12 +43,31 @@ export default function TransportScreen() {
     }
   };
 
+  const pageBg = isDark ? '#180600' : '#FFF6EE';
+
   return (
-    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
-      <View style={[styles.header, { backgroundColor: colors.headerBg, borderColor: colors.cardBorder }]}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{t.transportTitle}</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t.transportSub}</Text>
-      </View>
+    <View style={[styles.container, { backgroundColor: pageBg }]}>
+      {/* 🚕 Immersive Hero Header */}
+      <LinearGradient
+        colors={['#3D1500', '#7A2E00', '#C45A00', pageBg]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.heroHeader}
+      >
+        {/* Decorative Glow Orbs */}
+        <View style={[styles.glowOrb, { top: -40, right: 10, backgroundColor: 'rgba(245,130,32,0.35)', width: 150, height: 150 }]} />
+        <View style={[styles.glowOrb, { top: 30, left: -30, backgroundColor: 'rgba(255,165,0,0.2)', width: 100, height: 100 }]} />
+
+        <View style={styles.heroHeaderContent}>
+          <View style={styles.heroBadgeRow}>
+            <View style={styles.heroBadge}>
+              <Text style={styles.heroBadgeText}>🚕 TRANSPORT HUB</Text>
+            </View>
+          </View>
+          <Text style={styles.heroTitle}>{t.transportTitle}</Text>
+          <Text style={styles.heroSubtitle}>{t.transportSub}</Text>
+        </View>
+      </LinearGradient>
 
       {/* Segment Switcher */}
       <View style={[styles.segmentContainer, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
@@ -155,10 +176,61 @@ export default function TransportScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent', paddingTop: 54 },
-  header: { paddingHorizontal: 20, paddingBottom: 12, marginBottom: 10 },
-  title: { fontSize: 24, fontWeight: '800' },
-  subtitle: { fontSize: 12, marginTop: 4 },
+  container: { flex: 1, backgroundColor: 'transparent' },
+
+  // 🚕 Hero Header
+  heroHeader: {
+    paddingTop: Platform.OS === 'web' ? 70 : 60,
+    paddingBottom: 28,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    marginBottom: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroHeaderContent: {
+    position: 'relative',
+    zIndex: 1,
+  },
+  heroBadgeRow: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  heroBadge: {
+    backgroundColor: 'rgba(245, 130, 32, 0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 165, 0, 0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  heroBadgeText: {
+    color: '#FFD580',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+  },
+  heroTitle: {
+    color: '#FFFFFF',
+    fontSize: Platform.OS === 'web' ? 32 : 26,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+    marginBottom: 6,
+  },
+  heroSubtitle: {
+    color: 'rgba(255, 220, 170, 0.85)',
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 18,
+  },
+  glowOrb: {
+    position: 'absolute',
+    borderRadius: 200,
+  },
   segmentContainer: {
     flexDirection: 'row',
     borderRadius: 16, padding: 4, marginHorizontal: 16, marginBottom: 14,
