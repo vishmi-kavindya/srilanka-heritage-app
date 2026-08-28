@@ -1,22 +1,22 @@
-import React, { useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  ScrollView,
-  TextInput,
-  Image,
-  ActivityIndicator,
-  Platform,
-  Alert,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { getTranslation } from '../../constants/i18n';
+import { Colors } from '../../constants/theme';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
-import { getTranslation } from '../../constants/i18n';
-import { Colors, Shadow } from '../../constants/theme';
 
 const BACKEND_URL = Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000';
 
@@ -421,24 +421,47 @@ const styles = StyleSheet.create({
   },
   segmentContainer: {
     flexDirection: 'row',
-    borderRadius: 16, padding: 4, marginHorizontal: 16, marginBottom: 16,
+    borderRadius: 22,
+    padding: 5,
+    marginHorizontal: 16,
+    marginBottom: 18,
     borderWidth: 1,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 6,
   },
-  segmentBtn: { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 12 },
+  segmentBtn: { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 16 },
   activeSegmentBtn: { backgroundColor: Colors.highlight },
   segmentBtnText: { fontSize: 12, fontWeight: '700' },
   scannerScroll: { paddingBottom: 40, paddingHorizontal: 16 },
   scanCard: {
-    borderRadius: 20, padding: 20,
-    borderWidth: 1, ...Shadow.card,
+    borderRadius: 28,
+    padding: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 6,
   },
   cardHeader: { fontSize: 17, fontWeight: '800', marginBottom: 6 },
   cardSub: { fontSize: 13, marginBottom: 16, lineHeight: 19 },
-  previewImage: { width: '100%', height: 220, borderRadius: 16, marginBottom: 16 },
+  previewImage: { width: '100%', height: 220, borderRadius: 18, marginBottom: 16 },
   placeholderBox: {
-    width: '100%', height: 180, borderRadius: 16,
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderStyle: 'dashed', marginBottom: 16,
+    width: '100%', height: 180,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    marginBottom: 16,
+    overflow: 'hidden',
   },
   placeholderIcon: { fontSize: 44, marginBottom: 8 },
   placeholderText: { fontSize: 13 },
@@ -447,7 +470,7 @@ const styles = StyleSheet.create({
   captureBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
   galleryBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', borderWidth: 1 },
   galleryBtnText: { fontWeight: '700', fontSize: 14 },
-  resultBox: { padding: 16, borderRadius: 14, borderWidth: 1 },
+  resultBox: { padding: 16, borderRadius: 18, borderWidth: 1, overflow: 'hidden' },
   resultText: { fontSize: 14, lineHeight: 22 },
   quickPromptsBar: { maxHeight: 46, marginHorizontal: 16, marginBottom: 10 },
   promptChip: {

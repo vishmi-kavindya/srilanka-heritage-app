@@ -1,21 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  Modal,
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  ScrollView,
-  TextInput,
   Animated,
   Easing,
-  Platform,
   Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import {
-  TARGET_13_LANGUAGES,
   LanguageCode,
   LanguageItem,
+  TARGET_13_LANGUAGES,
   getTranslation,
 } from '../constants/i18n';
 
@@ -61,7 +61,11 @@ export default function PearlExplorerWelcomeModal({
   // Intro Splash Dedicated Animations
   const introTextScale = useRef(new Animated.Value(0.65)).current;
   const introTextOpacity = useRef(new Animated.Value(0)).current;
+  const introTagOpacity = useRef(new Animated.Value(0)).current;
+  const introLogoOpacity = useRef(new Animated.Value(0)).current;
   const logoPulseAnim = useRef(new Animated.Value(1)).current;
+  const introFloatAnim = useRef(new Animated.Value(0)).current;
+  const welcomeLetters = useRef("WELCOME".split('').map(() => new Animated.Value(0))).current;
 
   // Helper Function for Female / Girl Voice Audio Speech Output
   const playWelcomeVoice = () => {
@@ -169,20 +173,45 @@ export default function PearlExplorerWelcomeModal({
       if (step === 'intro') {
         introTextScale.setValue(0.65);
         introTextOpacity.setValue(0);
+        introTagOpacity.setValue(0);
+        introLogoOpacity.setValue(0);
+        introFloatAnim.setValue(0);
+        welcomeLetters.forEach(val => val.setValue(0));
 
-        // Animate Welcome Pearl Explorer text entrance
-        Animated.parallel([
-          Animated.spring(introTextScale, {
+        // Animate Welcome Pearl Explorer text entrance sequentially
+        Animated.sequence([
+          Animated.timing(introTagOpacity, {
             toValue: 1,
-            friction: 5,
-            tension: 40,
+            duration: 600,
             useNativeDriver: true,
           }),
-          Animated.timing(introTextOpacity, {
+          // Staggered letter animation for WELCOME
+          Animated.stagger(100, welcomeLetters.map(val =>
+            Animated.spring(val, {
+              toValue: 1,
+              friction: 4,
+              tension: 40,
+              useNativeDriver: true
+            })
+          )),
+          Animated.timing(introLogoOpacity, {
             toValue: 1,
-            duration: 850,
+            duration: 600,
             useNativeDriver: true,
           }),
+          Animated.parallel([
+            Animated.spring(introTextScale, {
+              toValue: 1,
+              friction: 5,
+              tension: 40,
+              useNativeDriver: true,
+            }),
+            Animated.timing(introTextOpacity, {
+              toValue: 1,
+              duration: 850,
+              useNativeDriver: true,
+            }),
+          ])
         ]).start();
 
         // Continuous Logo Halo Loop
@@ -196,6 +225,29 @@ export default function PearlExplorerWelcomeModal({
             }),
             Animated.timing(logoPulseAnim, {
               toValue: 1,
+              duration: 1200,
+              useNativeDriver: true,
+              easing: Easing.inOut(Easing.quad),
+            }),
+          ])
+        ).start();
+
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(introFloatAnim, {
+              toValue: -10,
+              duration: 1400,
+              useNativeDriver: true,
+              easing: Easing.inOut(Easing.quad),
+            }),
+            Animated.timing(introFloatAnim, {
+              toValue: 10,
+              duration: 1600,
+              useNativeDriver: true,
+              easing: Easing.inOut(Easing.quad),
+            }),
+            Animated.timing(introFloatAnim, {
+              toValue: 0,
               duration: 1200,
               useNativeDriver: true,
               easing: Easing.inOut(Easing.quad),
@@ -251,64 +303,90 @@ export default function PearlExplorerWelcomeModal({
             {/* STEP 0: EXCLUSIVE ANIMATED INTRO "WELCOME PEARL EXPLORER" WITH FEMALE VOICE */}
             {step === 'intro' ? (
               <View style={styles.cardContent}>
-                <View style={styles.glassCardIntro}>
-                  {/* Crown Tagline */}
-                  <Text style={styles.introCrownTag}>👑 SRI LANKA HERITAGE EXPLORER</Text>
+                <Animated.View
+                  style={[
+                    styles.glassCardIntro,
+                    { transform: [{ translateY: introFloatAnim }] },
+                  ]}
+                >
+                  {/* Top Content: Text and Logo */}
+                  <View style={styles.introTopContent}>
+                    {/* Crown Tagline */}
+                    <Animated.Text style={[styles.introCrownTag, { opacity: introTagOpacity }]}>
+                      SRI LANKA HERITAGE EXPLORER
+                    </Animated.Text>
 
-                  {/* Pulsing Logo Badge with Gold Ring */}
-                  <Animated.View
-                    style={[
-                      styles.logoBadgeContainer,
-                      { transform: [{ scale: logoPulseAnim }] },
-                    ]}
-                  >
-                    <Image
-                      source={require('../assets/images/logo.jpeg')}
-                      style={styles.logoBadgeImage}
-                      resizeMode="cover"
-                    />
-                  </Animated.View>
+                    {/* Animated Main Title: WELCOME (Letter by Letter) */}
+                    <View style={{ flexDirection: 'row', marginBottom: 16 }}>
+                      {"WELCOME".split('').map((char, index) => (
+                        <Animated.Text
+                          key={index}
+                          style={[
+                            styles.introPearlTitle,
+                            {
+                              opacity: welcomeLetters[index],
+                              transform: [
+                                { scale: welcomeLetters[index] },
+                                { translateY: welcomeLetters[index].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }
+                              ]
+                            }
+                          ]}
+                        >
+                          {char}
+                        </Animated.Text>
+                      ))}
+                    </View>
 
-                  {/* Animated Main Title: WELCOME PEARL EXPLORER */}
-                  <Animated.View
-                    style={{
-                      opacity: introTextOpacity,
-                      transform: [{ scale: introTextScale }],
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Text style={styles.introPearlTitle}>WELCOME</Text>
-                    <Text style={styles.introPearlGoldTitle}>PEARL EXPLORER</Text>
-                  </Animated.View>
-
-                  <View style={styles.goldDividerWide} />
-
-                  <Text style={styles.introSubtitle}>
-                    Discover the beauty of Sri Lanka & its 2,500-Year Ancient Legacy
-                  </Text>
-
-                  {/* Primary Continue Button to Language Selection */}
-                  <TouchableOpacity
-                    style={styles.goldContinueButton}
-                    onPress={() => setStep('language')}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.goldButtonText}>✨ EXPLORE HERITAGE →</Text>
-                  </TouchableOpacity>
-
-                  {/* Slideshow Dots */}
-                  <View style={styles.slideshowDotsRow}>
-                    {BACKGROUND_IMAGES.map((_, idx) => (
-                      <View
-                        key={idx}
-                        style={[
-                          styles.dot,
-                          currentBgIndex === idx ? styles.activeDot : styles.inactiveDot,
-                        ]}
+                    {/* Logo GIF (Background Removed) */}
+                    <Animated.View
+                      style={[
+                        styles.logoBadgeContainer,
+                        { opacity: introLogoOpacity, transform: [{ scale: logoPulseAnim }] },
+                      ]}
+                    >
+                      <Image
+                        source={require('../assets/images/output-onlinegiftools.gif')}
+                        style={styles.logoBadgeImage}
+                        resizeMode="contain"
                       />
-                    ))}
+                    </Animated.View>
                   </View>
-                </View>
+
+                  {/* Bottom Content: Buttons and Dots */}
+                  <View style={styles.introBottomContent}>
+                    {/* Primary Continue Buttons */}
+                    <View style={styles.authButtonsRow}>
+                      <TouchableOpacity
+                        style={[styles.goldContinueButton, { flex: 1, marginRight: 6 }]}
+                        onPress={() => { setAuthMode('signin'); setStep('auth'); }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.goldButtonText}>SIGN IN</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.goldContinueButton, { flex: 1, marginLeft: 6, backgroundColor: 'transparent', borderWidth: 1.5, borderColor: '#d4af37' }]}
+                        onPress={() => { setAuthMode('signup'); setStep('auth'); }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.goldButtonText, { color: '#d4af37' }]}>SIGN UP</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Slideshow Dots */}
+                    <View style={styles.slideshowDotsRow}>
+                      {BACKGROUND_IMAGES.map((_, idx) => (
+                        <View
+                          key={idx}
+                          style={[
+                            styles.dot,
+                            currentBgIndex === idx ? styles.activeDot : styles.inactiveDot,
+                          ]}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                </Animated.View>
               </View>
             ) : step === 'language' ? (
               /* STEP 1: LANGUAGE SELECTION DROPDOWN */
@@ -529,16 +607,21 @@ const styles = StyleSheet.create({
   },
   glassCardIntro: {
     width: '100%',
-    backgroundColor: 'rgba(10, 10, 18, 0.92)',
-    borderRadius: 28,
-    padding: 32,
-    borderWidth: 1.5,
-    borderColor: '#d4af37',
+    backgroundColor: 'transparent',
+    paddingHorizontal: 20,
+    paddingTop: 100,
+    paddingBottom: 40,
+    height: '90%',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#d4af37',
-    shadowOpacity: 0.5,
-    shadowRadius: 30,
-    elevation: 12,
+  },
+  introTopContent: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  introBottomContent: {
+    alignItems: 'center',
+    width: '100%',
   },
   glassCard: {
     width: '100%',
@@ -555,40 +638,35 @@ const styles = StyleSheet.create({
   },
   introCrownTag: {
     color: '#d4af37',
-    fontSize: 12,
-    letterSpacing: 3,
-    fontWeight: '800',
-    marginBottom: 18,
+    fontSize: 16,
+    letterSpacing: 5,
+    fontWeight: '900',
+    marginBottom: 24,
     textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.9)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   logoBadgeContainer: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 2.5,
-    borderColor: '#d4af37',
-    padding: 3,
-    backgroundColor: '#0a0a0f',
-    marginBottom: 18,
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.85,
-    shadowRadius: 16,
-    elevation: 10,
+    width: 320,
+    height: 140,
+    marginBottom: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoBadgeImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 40,
   },
   introPearlTitle: {
     color: '#ffffff',
-    fontSize: 22,
-    fontWeight: '600',
-    letterSpacing: 6,
+    fontSize: 48,
+    fontWeight: '900',
+    letterSpacing: 12,
     textAlign: 'center',
+    textShadowColor: 'rgba(212, 175, 55, 0.6)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 30,
   },
   introPearlGoldTitle: {
     color: '#f3e5ab',
@@ -731,6 +809,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: 'bold',
     letterSpacing: 1,
+  },
+  authButtonsRow: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
+    marginTop: 40,
   },
   slideshowDotsRow: {
     flexDirection: 'row',

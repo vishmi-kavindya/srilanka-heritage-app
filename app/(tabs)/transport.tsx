@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Linking,
-  Platform,
-} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { FALLBACK_ROUTES, FALLBACK_RENTALS } from '../../constants/heritageData';
+import { useState } from 'react';
+import {
+    Linking,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { FALLBACK_RENTALS, FALLBACK_ROUTES } from '../../constants/heritageData';
+import { getTranslation } from '../../constants/i18n';
+import { Colors } from '../../constants/theme';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
-import { getTranslation } from '../../constants/i18n';
-import { Colors, Radius, Shadow } from '../../constants/theme';
 
 export default function TransportScreen() {
   const { lang } = useLanguage();
@@ -233,18 +233,37 @@ const styles = StyleSheet.create({
   },
   segmentContainer: {
     flexDirection: 'row',
-    borderRadius: 16, padding: 4, marginHorizontal: 16, marginBottom: 14,
+    borderRadius: 22,
+    padding: 5,
+    marginHorizontal: 16,
+    marginBottom: 18,
     borderWidth: 1,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 6,
   },
-  segmentBtn: { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 12 },
+  segmentBtn: { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 16 },
   activeSegmentBtn: { backgroundColor: Colors.temple },
   segmentBtnText: { fontSize: 11, fontWeight: '700' },
   scrollContent: { paddingBottom: 50, paddingHorizontal: 16 },
   sectionHeading: { fontSize: 17, fontWeight: '800', marginBottom: 4 },
   sectionSub: { fontSize: 12, marginBottom: 16 },
   routeCard: {
-    borderRadius: 20, padding: 18,
-    marginBottom: 14, borderWidth: 1, ...Shadow.card,
+    borderRadius: 28,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 6,
   },
   routeTitle: { fontSize: 15, fontWeight: '800', marginBottom: 10 },
   fareBadge: {
@@ -259,15 +278,33 @@ const styles = StyleSheet.create({
   uberBtn: { flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
   uberBtnText: { fontWeight: '800', fontSize: 14 },
   transportCard: {
-    borderRadius: 20, padding: 18, marginBottom: 14,
-    borderWidth: 1, ...Shadow.card,
+    borderRadius: 28,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 6,
   },
   modeBox: { padding: 14, borderRadius: 12, marginTop: 10 },
   modeTitle: { fontSize: 13, fontWeight: '800', color: Colors.sapphire, marginBottom: 6 },
   modeText: { fontSize: 13, lineHeight: 19 },
   rentalCard: {
-    borderRadius: 20, padding: 18, marginBottom: 14,
-    borderWidth: 1, ...Shadow.card,
+    borderRadius: 28,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 6,
   },
   rentalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   districtBadge: {

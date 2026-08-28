@@ -1,20 +1,20 @@
-import React, { useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  Linking,
-  Platform,
-} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useState } from 'react';
+import {
+    Linking,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import { getTranslatedHeritageSites } from '../../constants/heritageData';
+import { getTranslation } from '../../constants/i18n';
+import { Colors } from '../../constants/theme';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
-import { getTranslation } from '../../constants/i18n';
-import { Colors, Radius, Shadow } from '../../constants/theme';
 
 export default function UtilitiesSafetyScreen() {
   const { lang } = useLanguage();
@@ -232,8 +232,18 @@ const styles = StyleSheet.create({
     borderRadius: 200,
   },
   sectionCard: {
-    borderRadius: 20, padding: 18, marginHorizontal: 16,
-    marginBottom: 16, borderWidth: 1, ...Shadow.card,
+    borderRadius: 28,
+    padding: 18,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 6,
   },
   cardHeader: { fontSize: 15, fontWeight: '800', marginBottom: 8 },
   rateSubtitle: { fontSize: 12, marginBottom: 14 },
@@ -255,7 +265,7 @@ const styles = StyleSheet.create({
   activeWeatherChip: { backgroundColor: Colors.sapphire, borderColor: Colors.sapphire },
   weatherChipText: { fontSize: 12, fontWeight: '600' },
   activeWeatherText: { color: '#fff', fontWeight: '800' },
-  weatherStatusBox: { padding: 16, borderRadius: 14 },
+  weatherStatusBox: { padding: 16, borderRadius: 18, overflow: 'hidden' },
   weatherMainRow: { flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 8 },
   tempText: { fontSize: 36, fontWeight: '800', color: Colors.saffron },
   condText: { fontSize: 14, fontWeight: '700' },
