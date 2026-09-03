@@ -16,10 +16,11 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { getTranslation } from '../../constants/i18n';
-import { Colors, Shadow } from '../../constants/theme';
+import { Colors } from '../../constants/theme';
 
 const BACKEND_URL = Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000';
 
@@ -27,7 +28,7 @@ export default function AiSuiteScreen() {
   const { width } = useWindowDimensions();
   const isDesktop = width > 768;
   const { lang } = useLanguage();
-  const { isDark, colors } = useAppTheme();
+  const { isDark } = useAppTheme();
   const t = getTranslation(lang);
   const [activeTab, setActiveTab] = useState<'scanner' | 'chatbot'>('scanner');
 
@@ -56,7 +57,7 @@ export default function AiSuiteScreen() {
       setScanLoading(true);
       setScanResult('Analyzing monument with Gemini AI Vision API...');
       setTimeout(() => {
-        setScanResult('🏛️ Landmark Identified: Sandakada Pahana (Moonstone)\n\n📜 Historical Summary:\nAn exquisitely carved semi-circular slab of stone placed at the foot of monastery steps. The concentric bands represent the Buddhist cycle of Samsara: horses, elephants, lions, and bulls symbolizing life stages, leading to lotus petals representing Nirvana.\n\n👑 Era: Anuradhapura & Polonnaruwa Kingdom (5th - 12th Century AD)');
+        setScanResult('Landmark Identified: Sandakada Pahana (Moonstone)\n\nHistorical Summary:\nAn exquisitely carved semi-circular slab of stone placed at the foot of monastery steps. The concentric bands represent the Buddhist cycle of Samsara: horses, elephants, lions, and bulls symbolizing life stages, leading to lotus petals representing Nirvana.\n\nEra: Anuradhapura & Polonnaruwa Kingdom (5th - 12th Century AD)');
         setScanLoading(false);
       }, 1500);
     }
@@ -69,7 +70,7 @@ export default function AiSuiteScreen() {
       setScanLoading(true);
       setScanResult('Analyzing gallery image with Gemini AI...');
       setTimeout(() => {
-        setScanResult('🏛️ Landmark Identified: Sigiriya Maiden Fresco\n\n📜 Historical Summary:\nCelestial maidens painted on the sheer rock cliff face of Sigiriya. Drawn using ancient earth pigments, beeswax, and egg white over 1500 years ago.\n\n👑 Era: 5th Century AD - King Kashyapa');
+        setScanResult('Landmark Identified: Sigiriya Maiden Fresco\n\nHistorical Summary:\nCelestial maidens painted on the sheer rock cliff face of Sigiriya. Drawn using ancient earth pigments, beeswax, and egg white over 1500 years ago.\n\nEra: 5th Century AD - King Kashyapa');
         setScanLoading(false);
       }, 1500);
     }
@@ -82,14 +83,24 @@ export default function AiSuiteScreen() {
     setMessages((prev) => [...prev, userMsg]);
     setInputText('');
     setChatLoading(true);
-    setTimeout(() => {
-      let fallbackAnswer = 'Sigiriya was built in the 5th Century AD by King Kashyapa as a sky fortress and palace complex, famous for its lion gate entrance, water gardens, and frescoes.';
-      if (query.toLowerCase().includes('tooth') || query.toLowerCase().includes('kandy')) {
-        fallbackAnswer = 'The Temple of the Tooth in Kandy holds the sacred dental relic of Gautama Buddha, symbolizing sovereign authority over Sri Lanka.';
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: query }),
+      });
+      const data = await response.json();
+      if (data.answer) {
+        setMessages((prev) => [...prev, { sender: 'ai', text: data.answer }]);
+      } else {
+        setMessages((prev) => [...prev, { sender: 'ai', text: 'Sorry, I could not process your request at the moment.' }]);
       }
-      setMessages((prev) => [...prev, { sender: 'ai', text: fallbackAnswer }]);
+    } catch (error) {
+      console.error(error);
+      setMessages((prev) => [...prev, { sender: 'ai', text: 'Failed to connect to the backend server.' }]);
+    } finally {
       setChatLoading(false);
-    }, 1000);
+    }
   };
 
   const scanSampleMonument = (title: string, resultText: string) => {
@@ -110,7 +121,7 @@ export default function AiSuiteScreen() {
       utterance.rate = 0.95;
       window.speechSynthesis.speak(utterance);
     } else {
-      Alert.alert('🔊 Voice Narration', scanResult);
+      Alert.alert('Voice Narration', scanResult);
     }
   };
 
@@ -123,11 +134,12 @@ export default function AiSuiteScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
         {/* Cinematic Full-Bleed Hero */}
         <View style={styles.heroContainer}>
-          <ImageBackground source={require('../../assets/images/temple.jpg')} style={styles.heroBgImage} imageStyle={{ opacity: 0.8 }}>
-            <LinearGradient colors={['rgba(0,0,0,0.2)', isDark ? '#0A0A0A' : '#F5F7FA']} style={StyleSheet.absoluteFillObject} />
+          <ImageBackground source={require('../../assets/images/temple.jpg')} style={styles.heroBgImage} imageStyle={{ opacity: 0.85 }}>
+            <LinearGradient colors={['rgba(0,0,0,0.2)', isDark ? '#0A0A0A' : '#F5F7FA']} style={StyleSheet.absoluteFill} />
             <View style={[styles.heroContentWrapper, { maxWidth: contentMaxWidth }]}>
               <View style={styles.badge}>
-                <Text style={styles.badgeText}>✨ AI HERITAGE SUITE</Text>
+                <Ionicons name="sparkles" size={12} color="#FFF" style={{ marginRight: 6 }} />
+                <Text style={styles.badgeText}>AI HERITAGE SUITE</Text>
               </View>
               <Text style={styles.heroTitle}>{t.aiHeader || 'Smart AI Heritage Suite'}</Text>
               <Text style={styles.heroSubtitle}>{t.aiSub || 'Gemini Vision Scanner & RAG Cultural Assistant'}</Text>
@@ -139,13 +151,15 @@ export default function AiSuiteScreen() {
         <View style={styles.segmentWrapper}>
           <BlurView intensity={80} tint={glassTint} style={styles.segmentBlur}>
             <TouchableOpacity style={[styles.segmentBtn, activeTab === 'scanner' && styles.segmentBtnActive]} onPress={() => setActiveTab('scanner')}>
+              <Ionicons name="camera-outline" size={18} color={activeTab === 'scanner' ? '#FFF' : (isDark ? '#AAA' : '#666')} />
               <Text style={[styles.segmentBtnText, activeTab === 'scanner' ? { color: '#FFF' } : { color: isDark ? '#AAA' : '#666' }]}>
-                📷 Camera Heritage Scan
+                Camera Heritage Scan
               </Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.segmentBtn, activeTab === 'chatbot' && styles.segmentBtnActive]} onPress={() => setActiveTab('chatbot')}>
+              <Ionicons name="chatbubbles-outline" size={18} color={activeTab === 'chatbot' ? '#FFF' : (isDark ? '#AAA' : '#666')} />
               <Text style={[styles.segmentBtnText, activeTab === 'chatbot' ? { color: '#FFF' } : { color: isDark ? '#AAA' : '#666' }]}>
-                💬 AI Companion Chatbot
+                AI Companion Chatbot
               </Text>
             </TouchableOpacity>
           </BlurView>
@@ -158,11 +172,20 @@ export default function AiSuiteScreen() {
               <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#111' }]}>Visual Object & Statue Identifier</Text>
               <Text style={[styles.cardDesc, { color: isDark ? '#999' : '#666' }]}>Point your camera at a moonstone, Buddha statue, carving, or ancient fresco to instantly extract historical facts.</Text>
 
-              <Text style={styles.sectionLabel}>⚡ INSTANT AI MONUMENT TESTER:</Text>
+              <View style={styles.sectionHeaderRow}>
+                <Ionicons name="flash" size={14} color="#888" />
+                <Text style={styles.sectionLabel}>INSTANT AI MONUMENT TESTER:</Text>
+              </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-                {['🎨 Sigiriya Frescoes', '🗿 Moonstone', '🛕 Gal Vihara', '🏰 Galle Lighthouse'].map((item, idx) => (
-                  <TouchableOpacity key={idx} style={[styles.chip, { backgroundColor: isDark ? '#1E1E1E' : '#F3F4F6', borderColor: isDark ? '#333' : '#E5E7EB' }]} onPress={() => scanSampleMonument(item, `🏛️ Landmark Identified: ${item}\n\n📜 Historical info for ${item}.`)}>
-                    <Text style={[styles.chipText, { color: isDark ? '#DDD' : '#333' }]}>{item}</Text>
+                {[
+                  { name: 'Sigiriya Frescoes', icon: 'color-palette-outline' },
+                  { name: 'Moonstone', icon: 'scan-circle-outline' },
+                  { name: 'Gal Vihara', icon: 'business-outline' },
+                  { name: 'Galle Lighthouse', icon: 'location-outline' }
+                ].map((item, idx) => (
+                  <TouchableOpacity key={idx} style={[styles.chip, { backgroundColor: isDark ? '#1E1E1E' : '#F3F4F6', borderColor: isDark ? '#333' : '#E5E7EB' }]} onPress={() => scanSampleMonument(item.name, `Landmark Identified: ${item.name}\n\nHistorical info for ${item.name}.`)}>
+                    <Ionicons name={item.icon as any} size={14} color={isDark ? '#DDD' : '#333'} style={{ marginRight: 6 }} />
+                    <Text style={[styles.chipText, { color: isDark ? '#DDD' : '#333' }]}>{item.name}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -172,7 +195,7 @@ export default function AiSuiteScreen() {
                   <Image source={{ uri: imageUri }} style={styles.previewImg} />
                 ) : (
                   <View style={styles.placeholder}>
-                    <Text style={{ fontSize: 40, marginBottom: 12 }}>🏛️</Text>
+                    <Ionicons name="image-outline" size={48} color={isDark ? '#444' : '#CCC'} style={{ marginBottom: 12 }} />
                     <Text style={{ color: isDark ? '#666' : '#999', fontSize: 14 }}>No image selected yet</Text>
                   </View>
                 )}
@@ -184,11 +207,13 @@ export default function AiSuiteScreen() {
                 <View style={[styles.actionRow, isDesktop ? { flexDirection: 'row' } : { flexDirection: 'column' }]}>
                   <TouchableOpacity style={styles.primaryBtn} onPress={captureAndScan}>
                     <LinearGradient colors={[Colors.teal, Colors.tealSoft]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnGradient}>
-                      <Text style={styles.primaryBtnText}>📷 Take Photo</Text>
+                      <Ionicons name="camera" size={18} color="#FFF" style={{ marginRight: 8 }} />
+                      <Text style={styles.primaryBtnText}>Take Photo</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.secondaryBtn, { borderColor: isDark ? '#333' : '#E5E7EB' }]} onPress={pickFromGallery}>
-                    <Text style={[styles.secondaryBtnText, { color: isDark ? '#FFF' : '#111' }]}>🖼️ Choose Image</Text>
+                    <Ionicons name="images" size={18} color={isDark ? '#FFF' : '#111'} style={{ marginRight: 8 }} />
+                    <Text style={[styles.secondaryBtnText, { color: isDark ? '#FFF' : '#111' }]}>Choose Image</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -197,7 +222,8 @@ export default function AiSuiteScreen() {
                 <View style={[styles.resultBox, { backgroundColor: isDark ? 'rgba(0, 140, 149, 0.1)' : '#E8F7F5', borderColor: isDark ? 'rgba(0, 140, 149, 0.3)' : '#B2DFDB' }]}>
                   <Text style={[styles.resultText, { color: isDark ? '#EEE' : '#111' }]}>{scanResult}</Text>
                   <TouchableOpacity style={styles.audioBtn} onPress={playResult}>
-                    <Text style={styles.audioBtnText}>🔊 Listen</Text>
+                    <Ionicons name="volume-medium" size={16} color={Colors.teal} style={{ marginRight: 6 }} />
+                    <Text style={styles.audioBtnText}>Listen</Text>
                   </TouchableOpacity>
                 </View>
               ) : null}
@@ -207,9 +233,14 @@ export default function AiSuiteScreen() {
           {activeTab === 'chatbot' && (
             <View style={[styles.card, { backgroundColor: isDark ? '#141414' : '#FFFFFF', borderColor: isDark ? '#2A2A2A' : '#E5E7EB', flex: 1, minHeight: 600 }]}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-                {['👑 Who built Sigiriya?', '🛕 Temple of Tooth History', '👗 Dress Code Rules'].map((prompt, i) => (
-                  <TouchableOpacity key={i} style={[styles.chip, { backgroundColor: isDark ? '#1E1E1E' : '#F3F4F6', borderColor: isDark ? '#333' : '#E5E7EB' }]} onPress={() => sendMessage(prompt)}>
-                    <Text style={[styles.chipText, { color: isDark ? '#DDD' : '#333' }]}>{prompt}</Text>
+                {[
+                  { name: 'Who built Sigiriya?', icon: 'person-outline' },
+                  { name: 'Temple of Tooth History', icon: 'library-outline' },
+                  { name: 'Dress Code Rules', icon: 'shirt-outline' }
+                ].map((prompt, i) => (
+                  <TouchableOpacity key={i} style={[styles.chip, { backgroundColor: isDark ? '#1E1E1E' : '#F3F4F6', borderColor: isDark ? '#333' : '#E5E7EB' }]} onPress={() => sendMessage(prompt.name)}>
+                    <Ionicons name={prompt.icon as any} size={14} color={isDark ? '#DDD' : '#333'} style={{ marginRight: 6 }} />
+                    <Text style={[styles.chipText, { color: isDark ? '#DDD' : '#333' }]}>{prompt.name}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -234,6 +265,7 @@ export default function AiSuiteScreen() {
                 />
                 <TouchableOpacity onPress={() => sendMessage()}>
                   <LinearGradient colors={[Colors.orange, '#FF6B00']} style={styles.sendBtn}>
+                    <Ionicons name="send" size={14} color="#FFF" style={{ marginRight: 6 }} />
                     <Text style={styles.sendBtnText}>Send</Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -265,9 +297,11 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(0, 140, 149, 0.8)',
     paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 20,
     marginBottom: 16,
   },
@@ -311,9 +345,12 @@ const styles = StyleSheet.create({
   },
   segmentBtn: {
     flex: 1,
+    flexDirection: 'row',
     paddingVertical: 14,
     alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 24,
+    gap: 8,
   },
   segmentBtnActive: {
     backgroundColor: Colors.teal,
@@ -349,18 +386,25 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 24,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 6,
+  },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '800',
     color: '#888',
     letterSpacing: 1,
-    marginBottom: 12,
   },
   chipScroll: {
     flexGrow: 0,
     marginBottom: 24,
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 20,
@@ -400,6 +444,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   primaryBtnGradient: {
+    flexDirection: 'row',
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -411,6 +456,7 @@ const styles = StyleSheet.create({
   },
   secondaryBtn: {
     flex: 1,
+    flexDirection: 'row',
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -432,11 +478,13 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   audioBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 16,
     alignSelf: 'flex-start',
     backgroundColor: 'rgba(0,0,0,0.05)',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
   },
   audioBtnText: {
@@ -480,9 +528,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 15,
     height: 44,
-    outlineStyle: 'none',
   },
   sendBtn: {
+    flexDirection: 'row',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24,

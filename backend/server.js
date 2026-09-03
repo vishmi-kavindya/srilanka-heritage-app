@@ -4,6 +4,10 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+
+if (!process.env.GEMINI_API_KEY) {
+  console.warn("No GEMINI_API_KEY found in .env. Falling back to mock AI responses.");
+}
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
@@ -250,13 +254,45 @@ app.post('/api/ai/scan-monument', async (req, res) => {
 });
 
 // 4. AI Cultural Companion Chatbot (RAG-enabled QA)
-app.post('/api/ai/chat', (req, res) => {
+app.post('/api/ai/chat', async (req, res) => {
   const { question } = req.body;
   if (!question) return res.status(400).json({ error: 'Question is required' });
 
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `You are a Sri Lanka Heritage AI Companion. Answer the user's question about Sri Lankan heritage, culture, or travel concisely and accurately.\n\nUser Question: ${question}`
+            }]
+          }]
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        console.error("Gemini API Error Response:", data);
+        return res.status(response.status).json({ error: 'Failed to generate answer from AI.' });
+      }
+
+      if (data.candidates && data.candidates[0].content.parts[0].text) {
+        return res.json({ answer: data.candidates[0].content.parts[0].text });
+      } else {
+        return res.json({ answer: "I'm sorry, I couldn't generate a response." });
+      }
+    } catch (error) {
+      console.error("Gemini API Fetch Error:", error);
+      return res.status(500).json({ error: 'Failed to connect to Gemini API.' });
+    }
+  }
+
+  // Fallback if API key is not set
   const q = question.toLowerCase();
 
-  let answer = 'Sri Lanka has over 2,500 years of documented royal and religious history. Feel free to ask about Sigiriya, Kandy, Polonnaruwa, Anuradhapura, or Galle Fort!';
+  let answer = 'Sri Lanka has over 2,500 years of documented royal and religious history. Feel free to ask about Sigiriya, Kandy, Polonnaruwa, Anuradhapura, or Galle Fort! (Note: Gemini API key not found. Using fallback answers.)';
 
   if (q.includes('sigiriya') || q.includes('lion rock')) {
     answer = 'Sigiriya was constructed in 5th Century AD by King Kashyapa as a sky palace and fortress, featuring water gardens, frescoes, and a massive lion gateway entrance.';
