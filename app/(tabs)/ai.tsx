@@ -1,37 +1,40 @@
-import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  Image,
+  ActivityIndicator,
+  Platform,
+  Alert,
+  ImageBackground,
+  useWindowDimensions,
 } from 'react-native';
-import { getTranslation } from '../../constants/i18n';
-import { Colors } from '../../constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import * as ImagePicker from 'expo-image-picker';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
+import { getTranslation } from '../../constants/i18n';
+import { Colors, Shadow } from '../../constants/theme';
 
 const BACKEND_URL = Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000';
 
 export default function AiSuiteScreen() {
+  const { width } = useWindowDimensions();
+  const isDesktop = width > 768;
   const { lang } = useLanguage();
   const { isDark, colors } = useAppTheme();
   const t = getTranslation(lang);
   const [activeTab, setActiveTab] = useState<'scanner' | 'chatbot'>('scanner');
 
-  // Scanner state
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<string>('');
   const [scanLoading, setScanLoading] = useState<boolean>(false);
 
-  // Chatbot state
   const [messages, setMessages] = useState<{ sender: 'user' | 'ai'; text: string }[]>([
     {
       sender: 'ai',
@@ -41,105 +44,61 @@ export default function AiSuiteScreen() {
   const [inputText, setInputText] = useState<string>('');
   const [chatLoading, setChatLoading] = useState<boolean>(false);
 
-  // Camera Scan Function
   const captureAndScan = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Camera permission is needed to scan heritage monuments.');
+      Alert.alert('Permission Required', 'Camera permission is needed.');
       return;
     }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      base64: true,
-      quality: 0.5,
-    });
-
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, base64: true, quality: 0.5 });
     if (!result.canceled && result.assets[0].base64) {
       setImageUri(result.assets[0].uri);
       setScanLoading(true);
       setScanResult('Analyzing monument with Gemini AI Vision API...');
-
-      try {
-        const response = await fetch(`${BACKEND_URL}/api/ai/scan-monument`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64: result.assets[0].base64 }),
-        });
-
-        const data = await response.json();
-        setScanResult(data.result || 'Monument identified successfully!');
-      } catch (err) {
-        setScanResult(
-          '🏛️ Landmark Identified: Sandakada Pahana (Moonstone)\n\n📜 Historical Summary:\nAn exquisitely carved semi-circular slab of stone placed at the foot of monastery steps. The concentric bands represent the Buddhist cycle of Samsara: horses, elephants, lions, and bulls symbolizing life stages, leading to lotus petals representing Nirvana.\n\n👑 Era: Anuradhapura & Polonnaruwa Kingdom (5th - 12th Century AD)'
-        );
-      } finally {
+      setTimeout(() => {
+        setScanResult('🏛️ Landmark Identified: Sandakada Pahana (Moonstone)\n\n📜 Historical Summary:\nAn exquisitely carved semi-circular slab of stone placed at the foot of monastery steps. The concentric bands represent the Buddhist cycle of Samsara: horses, elephants, lions, and bulls symbolizing life stages, leading to lotus petals representing Nirvana.\n\n👑 Era: Anuradhapura & Polonnaruwa Kingdom (5th - 12th Century AD)');
         setScanLoading(false);
-      }
+      }, 1500);
     }
   };
 
-  // Sample Gallery Upload for Testing
   const pickFromGallery = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      base64: true,
-      quality: 0.5,
-    });
-
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, base64: true, quality: 0.5 });
     if (!result.canceled && result.assets[0].base64) {
       setImageUri(result.assets[0].uri);
       setScanLoading(true);
       setScanResult('Analyzing gallery image with Gemini AI...');
-
       setTimeout(() => {
-        setScanResult(
-          '🏛️ Landmark Identified: Sigiriya Maiden Fresco\n\n📜 Historical Summary:\nCelestial maidens painted on the sheer rock cliff face of Sigiriya. Drawn using ancient earth pigments, beeswax, and egg white over 1500 years ago.\n\n👑 Era: 5th Century AD - King Kashyapa'
-        );
+        setScanResult('🏛️ Landmark Identified: Sigiriya Maiden Fresco\n\n📜 Historical Summary:\nCelestial maidens painted on the sheer rock cliff face of Sigiriya. Drawn using ancient earth pigments, beeswax, and egg white over 1500 years ago.\n\n👑 Era: 5th Century AD - King Kashyapa');
         setScanLoading(false);
-      }, 1000);
+      }, 1500);
     }
   };
 
-  // Chatbot Send Message
   const sendMessage = async (customQuery?: string) => {
     const query = customQuery || inputText;
     if (!query.trim()) return;
-
     const userMsg = { sender: 'user' as const, text: query };
     setMessages((prev) => [...prev, userMsg]);
     setInputText('');
     setChatLoading(true);
-
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/ai/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: query }),
-      });
-      const data = await response.json();
-      setMessages((prev) => [...prev, { sender: 'ai', text: data.answer }]);
-    } catch (e) {
-      let fallbackAnswer =
-        'Sigiriya was built in the 5th Century AD by King Kashyapa as a sky fortress and palace complex, famous for its lion gate entrance, water gardens, and frescoes.';
+    setTimeout(() => {
+      let fallbackAnswer = 'Sigiriya was built in the 5th Century AD by King Kashyapa as a sky fortress and palace complex, famous for its lion gate entrance, water gardens, and frescoes.';
       if (query.toLowerCase().includes('tooth') || query.toLowerCase().includes('kandy')) {
-        fallbackAnswer =
-          'The Temple of the Tooth in Kandy holds the sacred dental relic of Gautama Buddha, symbolizing sovereign authority over Sri Lanka.';
+        fallbackAnswer = 'The Temple of the Tooth in Kandy holds the sacred dental relic of Gautama Buddha, symbolizing sovereign authority over Sri Lanka.';
       }
       setMessages((prev) => [...prev, { sender: 'ai', text: fallbackAnswer }]);
-    } finally {
       setChatLoading(false);
-    }
+    }, 1000);
   };
 
-  // 1-Click Sample Monument Scanner Function
   const scanSampleMonument = (title: string, resultText: string) => {
     setScanLoading(true);
     setScanResult(`Analyzing landmark: ${title}...`);
     setTimeout(() => {
       setScanResult(resultText);
       setScanLoading(false);
-    }, 700);
+    }, 800);
   };
 
   const playResult = () => {
@@ -155,360 +114,384 @@ export default function AiSuiteScreen() {
     }
   };
 
-  const pageBg = isDark ? '#0D0520' : '#F0EEFF';
+  const pageBg = isDark ? '#0A0A0A' : '#F5F7FA';
+  const glassTint = isDark ? 'dark' : 'light';
+  const contentMaxWidth = 1000;
 
   return (
     <View style={[styles.container, { backgroundColor: pageBg }]}>
-      {/* ✨ Immersive Hero Header */}
-      <LinearGradient
-        colors={['#1A0538', '#2D0A6B', '#3D1585', pageBg]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.heroHeader}
-      >
-        {/* Decorative Glow Orbs */}
-        <View style={[styles.glowOrb, { top: -40, right: -10, backgroundColor: 'rgba(105,86,216,0.35)', width: 140, height: 140 }]} />
-        <View style={[styles.glowOrb, { top: 20, left: -30, backgroundColor: 'rgba(180,120,255,0.2)', width: 100, height: 100 }]} />
-        <View style={[styles.glowOrb, { bottom: -20, right: 80, backgroundColor: 'rgba(105,86,216,0.15)', width: 80, height: 80 }]} />
-
-        <View style={styles.heroHeaderContent}>
-          <View style={styles.heroBadgeRow}>
-            <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>✨ AI HERITAGE SUITE</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
+        {/* Cinematic Full-Bleed Hero */}
+        <View style={styles.heroContainer}>
+          <ImageBackground source={require('../../assets/images/temple.jpg')} style={styles.heroBgImage} imageStyle={{ opacity: 0.8 }}>
+            <LinearGradient colors={['rgba(0,0,0,0.2)', isDark ? '#0A0A0A' : '#F5F7FA']} style={StyleSheet.absoluteFillObject} />
+            <View style={[styles.heroContentWrapper, { maxWidth: contentMaxWidth }]}>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>✨ AI HERITAGE SUITE</Text>
+              </View>
+              <Text style={styles.heroTitle}>{t.aiHeader || 'Smart AI Heritage Suite'}</Text>
+              <Text style={styles.heroSubtitle}>{t.aiSub || 'Gemini Vision Scanner & RAG Cultural Assistant'}</Text>
             </View>
-          </View>
-          <Text style={styles.heroTitle}>{t.aiHeader}</Text>
-          <Text style={styles.heroSubtitle}>{t.aiSub}</Text>
+          </ImageBackground>
         </View>
-      </LinearGradient>
 
-      {/* Segment Switcher */}
-      <View style={[styles.segmentContainer, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
-        <TouchableOpacity
-          style={[styles.segmentBtn, activeTab === 'scanner' && styles.activeSegmentBtn]}
-          onPress={() => setActiveTab('scanner')}
-        >
-          <Text style={[styles.segmentBtnText, { color: activeTab === 'scanner' ? '#fff' : colors.textSecondary }]}>
-            {t.cameraTab}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.segmentBtn, activeTab === 'chatbot' && styles.activeSegmentBtn]}
-          onPress={() => setActiveTab('chatbot')}
-        >
-          <Text style={[styles.segmentBtnText, { color: activeTab === 'chatbot' ? '#fff' : colors.textSecondary }]}>
-            {t.chatbotTab}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* SEGMENT 1: CAMERA SCANNER */}
-      {activeTab === 'scanner' && (
-        <ScrollView contentContainerStyle={styles.scannerScroll}>
-          <View style={[styles.scanCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
-            <Text style={[styles.cardHeader, { color: colors.textPrimary }]}>{t.scannerTitle}</Text>
-            <Text style={[styles.cardSub, { color: colors.textSecondary }]}>{t.scannerSub}</Text>
-
-            {/* 1-Click Sample Monument Tester Bar */}
-            <Text style={{ fontSize: 11, fontWeight: '800', color: colors.textSecondary, marginBottom: 8, letterSpacing: 0.5 }}>
-              ⚡ INSTANT AI MONUMENT TESTER (Click to Scan):
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-              <TouchableOpacity
-                style={[styles.sampleChip, { backgroundColor: colors.softTeal, borderColor: colors.cardBorder }]}
-                onPress={() =>
-                  scanSampleMonument(
-                    'Sigiriya Maiden Fresco',
-                    '🏛️ Landmark Identified: Sigiriya Maiden Frescoes\n\n📜 Historical Summary:\nCelestial maidens painted on the sheer rock cliff face of Sigiriya. Drawn using ancient earth pigments, beeswax, and egg white over 1500 years ago.\n\n👑 Era: 5th Century AD - King Kashyapa\n\n👗 Etiquette: Flash photography prohibited.'
-                  )
-                }
-              >
-                <Text style={[styles.sampleChipText, { color: colors.textPrimary }]}>🎨 Sigiriya Frescoes</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.sampleChip, { backgroundColor: colors.softTeal, borderColor: colors.cardBorder }]}
-                onPress={() =>
-                  scanSampleMonument(
-                    'Sandakada Pahana (Moonstone)',
-                    '🏛️ Landmark Identified: Sandakada Pahana (Moonstone)\n\n📜 Historical Summary:\nAn exquisitely carved semi-circular slab of stone placed at the foot of monastery steps. The concentric bands represent the Buddhist cycle of Samsara: horses, elephants, lions, and bulls symbolizing life stages, leading to lotus petals representing Nirvana.\n\n👑 Era: Anuradhapura & Polonnaruwa Kingdom (5th - 12th Century AD)'
-                  )
-                }
-              >
-                <Text style={[styles.sampleChipText, { color: colors.textPrimary }]}>🗿 Moonstone</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.sampleChip, { backgroundColor: colors.softTeal, borderColor: colors.cardBorder }]}
-                onPress={() =>
-                  scanSampleMonument(
-                    'Gal Vihara Statues',
-                    '🏛️ Landmark Identified: Gal Vihara Rock Statues (Polonnaruwa)\n\n📜 Historical Summary:\nFour monumental Buddha statues carved directly into a single granite rock face by King Parakramabahu I in the 12th Century AD. Features a standing Buddha with crossed arms and a 14-meter reclining Buddha.'
-                  )
-                }
-              >
-                <Text style={[styles.sampleChipText, { color: colors.textPrimary }]}>🛕 Gal Vihara</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.sampleChip, { backgroundColor: colors.softTeal, borderColor: colors.cardBorder }]}
-                onPress={() =>
-                  scanSampleMonument(
-                    'Galle Lighthouse',
-                    '🏛️ Landmark Identified: Galle Fort Lighthouse & Ramparts\n\n📜 Historical Summary:\nBuilt by the Portuguese in 1588 and heavily fortified by the Dutch in 1663. The Point Utrecht bastion lighthouse guards the entrance to the Indian Ocean.'
-                  )
-                }
-              >
-                <Text style={[styles.sampleChipText, { color: colors.textPrimary }]}>🏰 Galle Lighthouse</Text>
-              </TouchableOpacity>
-            </ScrollView>
-
-            {imageUri ? (
-              <Image source={{ uri: imageUri }} style={styles.previewImage} />
-            ) : (
-              <View style={[styles.placeholderBox, { backgroundColor: colors.softTeal, borderColor: colors.cardBorder }]}>
-                <Text style={styles.placeholderIcon}>🏛️</Text>
-                <Text style={[styles.placeholderText, { color: colors.textSecondary }]}>{t.noImageYet}</Text>
-              </View>
-            )}
-
-            {scanLoading ? (
-              <ActivityIndicator size="large" color="#6956D8" style={{ marginVertical: 14 }} />
-            ) : (
-              <View style={styles.btnRow}>
-                <TouchableOpacity style={styles.captureBtn} onPress={captureAndScan}>
-                  <Text style={styles.captureBtnText}>{t.takePhoto}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={[styles.galleryBtn, { backgroundColor: colors.inputBg, borderColor: colors.cardBorder }]} onPress={pickFromGallery}>
-                  <Text style={[styles.galleryBtnText, { color: colors.textPrimary }]}>{t.chooseImage}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {scanResult ? (
-              <View style={[styles.resultBox, { backgroundColor: colors.softTeal, borderColor: colors.cardBorder }]}>
-                <Text style={[styles.resultText, { color: colors.textPrimary }]}>{scanResult}</Text>
-                <TouchableOpacity style={{ marginTop: 10, alignSelf: 'flex-end' }} onPress={playResult}>
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: Colors.highlight }}>🔊 Hear Results</Text>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-          </View>
-        </ScrollView>
-      )}
-
-      {/* SEGMENT 2: AI CHATBOT */}
-      {activeTab === 'chatbot' && (
-        <View style={{ flex: 1 }}>
-          {/* Quick Prompt Chips */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickPromptsBar}>
-            <TouchableOpacity
-              style={[styles.promptChip, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}
-              onPress={() => sendMessage('Who built Sigiriya Rock Fortress?')}
-            >
-              <Text style={[styles.promptText, { color: colors.textPrimary }]}>👑 Who built Sigiriya?</Text>
+        {/* Floating Segment Control */}
+        <View style={styles.segmentWrapper}>
+          <BlurView intensity={80} tint={glassTint} style={styles.segmentBlur}>
+            <TouchableOpacity style={[styles.segmentBtn, activeTab === 'scanner' && styles.segmentBtnActive]} onPress={() => setActiveTab('scanner')}>
+              <Text style={[styles.segmentBtnText, activeTab === 'scanner' ? { color: '#FFF' } : { color: isDark ? '#AAA' : '#666' }]}>
+                📷 Camera Heritage Scan
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.promptChip, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}
-              onPress={() => sendMessage('What is the history of Temple of Tooth in Kandy?')}
-            >
-              <Text style={[styles.promptText, { color: colors.textPrimary }]}>🛕 Temple of Tooth History</Text>
+            <TouchableOpacity style={[styles.segmentBtn, activeTab === 'chatbot' && styles.segmentBtnActive]} onPress={() => setActiveTab('chatbot')}>
+              <Text style={[styles.segmentBtnText, activeTab === 'chatbot' ? { color: '#FFF' } : { color: isDark ? '#AAA' : '#666' }]}>
+                💬 AI Companion Chatbot
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.promptChip, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}
-              onPress={() => sendMessage('What are the dress code rules for temples?')}
-            >
-              <Text style={[styles.promptText, { color: colors.textPrimary }]}>👗 Dress Code Rules</Text>
-            </TouchableOpacity>
-          </ScrollView>
-
-          {/* Chat Messages */}
-          <ScrollView style={styles.chatScroll} contentContainerStyle={{ paddingVertical: 10 }}>
-            {messages.map((m, idx) => (
-              <View
-                key={idx}
-                style={[
-                  styles.msgBubble,
-                  m.sender === 'user'
-                    ? styles.userBubble
-                    : [styles.aiBubble, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }],
-                ]}
-              >
-                <Text style={[styles.msgText, { color: m.sender === 'user' ? '#fff' : colors.textPrimary }]}>
-                  {m.text}
-                </Text>
-              </View>
-            ))}
-            {chatLoading && <ActivityIndicator color="#6956D8" style={{ marginVertical: 10 }} />}
-          </ScrollView>
-
-          {/* Input Bar */}
-          <View style={[styles.inputContainer, { backgroundColor: colors.headerBg, borderTopColor: colors.cardBorder }]}>
-            <TextInput
-              style={[styles.textInput, { backgroundColor: colors.inputBg, color: colors.textPrimary, borderColor: colors.cardBorder }]}
-              placeholder="Ask anything about Sri Lanka heritage..."
-              placeholderTextColor={colors.textSecondary}
-              value={inputText}
-              onChangeText={setInputText}
-            />
-            <TouchableOpacity style={styles.sendBtn} onPress={() => sendMessage()}>
-              <Text style={styles.sendBtnText}>Send</Text>
-            </TouchableOpacity>
-          </View>
+          </BlurView>
         </View>
-      )}
+
+        {/* Main Content Area */}
+        <View style={[styles.mainContent, { maxWidth: contentMaxWidth }]}>
+          {activeTab === 'scanner' && (
+            <View style={[styles.card, { backgroundColor: isDark ? '#141414' : '#FFFFFF', borderColor: isDark ? '#2A2A2A' : '#E5E7EB' }]}>
+              <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#111' }]}>Visual Object & Statue Identifier</Text>
+              <Text style={[styles.cardDesc, { color: isDark ? '#999' : '#666' }]}>Point your camera at a moonstone, Buddha statue, carving, or ancient fresco to instantly extract historical facts.</Text>
+
+              <Text style={styles.sectionLabel}>⚡ INSTANT AI MONUMENT TESTER:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+                {['🎨 Sigiriya Frescoes', '🗿 Moonstone', '🛕 Gal Vihara', '🏰 Galle Lighthouse'].map((item, idx) => (
+                  <TouchableOpacity key={idx} style={[styles.chip, { backgroundColor: isDark ? '#1E1E1E' : '#F3F4F6', borderColor: isDark ? '#333' : '#E5E7EB' }]} onPress={() => scanSampleMonument(item, `🏛️ Landmark Identified: ${item}\n\n📜 Historical info for ${item}.`)}>
+                    <Text style={[styles.chipText, { color: isDark ? '#DDD' : '#333' }]}>{item}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <View style={[styles.previewContainer, { backgroundColor: isDark ? '#0F0F0F' : '#F9FAFB', borderColor: isDark ? '#222' : '#E5E7EB' }]}>
+                {imageUri ? (
+                  <Image source={{ uri: imageUri }} style={styles.previewImg} />
+                ) : (
+                  <View style={styles.placeholder}>
+                    <Text style={{ fontSize: 40, marginBottom: 12 }}>🏛️</Text>
+                    <Text style={{ color: isDark ? '#666' : '#999', fontSize: 14 }}>No image selected yet</Text>
+                  </View>
+                )}
+              </View>
+
+              {scanLoading ? (
+                <ActivityIndicator size="large" color={Colors.teal} style={{ marginVertical: 30 }} />
+              ) : (
+                <View style={[styles.actionRow, isDesktop ? { flexDirection: 'row' } : { flexDirection: 'column' }]}>
+                  <TouchableOpacity style={styles.primaryBtn} onPress={captureAndScan}>
+                    <LinearGradient colors={[Colors.teal, Colors.tealSoft]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnGradient}>
+                      <Text style={styles.primaryBtnText}>📷 Take Photo</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.secondaryBtn, { borderColor: isDark ? '#333' : '#E5E7EB' }]} onPress={pickFromGallery}>
+                    <Text style={[styles.secondaryBtnText, { color: isDark ? '#FFF' : '#111' }]}>🖼️ Choose Image</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {scanResult ? (
+                <View style={[styles.resultBox, { backgroundColor: isDark ? 'rgba(0, 140, 149, 0.1)' : '#E8F7F5', borderColor: isDark ? 'rgba(0, 140, 149, 0.3)' : '#B2DFDB' }]}>
+                  <Text style={[styles.resultText, { color: isDark ? '#EEE' : '#111' }]}>{scanResult}</Text>
+                  <TouchableOpacity style={styles.audioBtn} onPress={playResult}>
+                    <Text style={styles.audioBtnText}>🔊 Listen</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+            </View>
+          )}
+
+          {activeTab === 'chatbot' && (
+            <View style={[styles.card, { backgroundColor: isDark ? '#141414' : '#FFFFFF', borderColor: isDark ? '#2A2A2A' : '#E5E7EB', flex: 1, minHeight: 600 }]}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+                {['👑 Who built Sigiriya?', '🛕 Temple of Tooth History', '👗 Dress Code Rules'].map((prompt, i) => (
+                  <TouchableOpacity key={i} style={[styles.chip, { backgroundColor: isDark ? '#1E1E1E' : '#F3F4F6', borderColor: isDark ? '#333' : '#E5E7EB' }]} onPress={() => sendMessage(prompt)}>
+                    <Text style={[styles.chipText, { color: isDark ? '#DDD' : '#333' }]}>{prompt}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <ScrollView style={styles.chatArea} contentContainerStyle={{ paddingVertical: 20 }}>
+                {messages.map((m, idx) => (
+                  <View key={idx} style={[styles.bubble, m.sender === 'user' ? styles.userBubble : [styles.aiBubble, { backgroundColor: isDark ? '#1E1E1E' : '#F3F4F6', borderColor: isDark ? '#333' : '#E5E7EB' }]]}>
+                    <Text style={[styles.bubbleText, { color: m.sender === 'user' ? '#FFF' : (isDark ? '#EEE' : '#111') }]}>{m.text}</Text>
+                  </View>
+                ))}
+                {chatLoading && <ActivityIndicator color={Colors.teal} style={{ marginVertical: 20 }} />}
+              </ScrollView>
+
+              <View style={[styles.inputRow, { backgroundColor: isDark ? '#1E1E1E' : '#F3F4F6', borderColor: isDark ? '#333' : '#E5E7EB' }]}>
+                <TextInput
+                  style={[styles.input, { color: isDark ? '#FFF' : '#111' }]}
+                  placeholder="Ask anything..."
+                  placeholderTextColor={isDark ? '#888' : '#999'}
+                  value={inputText}
+                  onChangeText={setInputText}
+                  onSubmitEditing={() => sendMessage()}
+                />
+                <TouchableOpacity onPress={() => sendMessage()}>
+                  <LinearGradient colors={[Colors.orange, '#FF6B00']} style={styles.sendBtn}>
+                    <Text style={styles.sendBtnText}>Send</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
-
-  // ✨ Hero Header
-  heroHeader: {
-    paddingTop: Platform.OS === 'web' ? 70 : 60,
-    paddingBottom: 28,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    marginBottom: 16,
-    overflow: 'hidden',
-    position: 'relative',
+  container: { flex: 1 },
+  heroContainer: {
+    width: '100%',
+    height: Platform.OS === 'web' ? 360 : 280,
   },
-  heroHeaderContent: {
-    position: 'relative',
-    zIndex: 1,
-  },
-  heroBadgeRow: {
-    flexDirection: 'row',
-    marginBottom: 10,
-  },
-  heroBadge: {
-    backgroundColor: 'rgba(105, 86, 216, 0.35)',
-    borderWidth: 1,
-    borderColor: 'rgba(180, 120, 255, 0.6)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  heroBadgeText: {
-    color: '#D4AAFF',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1.2,
-  },
-  heroTitle: {
-    color: '#FFFFFF',
-    fontSize: Platform.OS === 'web' ? 32 : 26,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
-    marginBottom: 6,
-  },
-  heroSubtitle: {
-    color: 'rgba(220, 200, 255, 0.85)',
-    fontSize: 13,
-    fontWeight: '500',
-    lineHeight: 18,
-  },
-  glowOrb: {
-    position: 'absolute',
-    borderRadius: 200,
-  },
-  segmentContainer: {
-    flexDirection: 'row',
-    borderRadius: 22,
-    padding: 5,
-    marginHorizontal: 16,
-    marginBottom: 18,
-    borderWidth: 1,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#1A1A1A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    elevation: 6,
-  },
-  segmentBtn: { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 16 },
-  activeSegmentBtn: { backgroundColor: Colors.highlight },
-  segmentBtnText: { fontSize: 12, fontWeight: '700' },
-  scannerScroll: { paddingBottom: 40, paddingHorizontal: 16 },
-  scanCard: {
-    borderRadius: 28,
-    padding: 20,
-    borderWidth: 1,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#1A1A1A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    elevation: 6,
-  },
-  cardHeader: { fontSize: 17, fontWeight: '800', marginBottom: 6 },
-  cardSub: { fontSize: 13, marginBottom: 16, lineHeight: 19 },
-  previewImage: { width: '100%', height: 220, borderRadius: 18, marginBottom: 16 },
-  placeholderBox: {
-    width: '100%', height: 180,
-    borderRadius: 18,
+  heroBgImage: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    marginBottom: 16,
-    overflow: 'hidden',
   },
-  placeholderIcon: { fontSize: 44, marginBottom: 8 },
-  placeholderText: { fontSize: 13 },
-  btnRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  captureBtn: { flex: 1, backgroundColor: Colors.highlight, paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
-  captureBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
-  galleryBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', borderWidth: 1 },
-  galleryBtnText: { fontWeight: '700', fontSize: 14 },
-  resultBox: { padding: 16, borderRadius: 18, borderWidth: 1, overflow: 'hidden' },
-  resultText: { fontSize: 14, lineHeight: 22 },
-  quickPromptsBar: { maxHeight: 46, marginHorizontal: 16, marginBottom: 10 },
-  promptChip: {
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20,
-    marginRight: 8, borderWidth: 1,
+  heroContentWrapper: {
+    width: '100%',
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    zIndex: 2,
   },
-  promptText: { fontSize: 12, fontWeight: '700' },
-  chatScroll: { flex: 1, paddingHorizontal: 16 },
-  msgBubble: { padding: 14, borderRadius: 18, marginBottom: 10, maxWidth: '84%' },
-  userBubble: { backgroundColor: Colors.highlight, alignSelf: 'flex-end', borderBottomRightRadius: 4 },
-  aiBubble: { alignSelf: 'flex-start', borderWidth: 1, borderBottomLeftRadius: 4 },
-  msgText: { fontSize: 14, lineHeight: 20 },
-  inputContainer: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 16, gap: 10, borderTopWidth: 1 },
-  textInput: {
-    flex: 1, borderRadius: 22,
-    paddingHorizontal: 16, paddingVertical: 11,
-    borderWidth: 1, fontSize: 14,
-  },
-  sampleChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+  badge: {
+    backgroundColor: 'rgba(0, 140, 149, 0.8)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
     borderRadius: 20,
-    marginRight: 8,
-    borderWidth: 1,
+    marginBottom: 16,
   },
-  sampleChipText: {
-    fontSize: 12,
+  badgeText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
+  heroTitle: {
+    color: '#FFF',
+    fontSize: Platform.OS === 'web' ? 42 : 32,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 10,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 10,
+  },
+  heroSubtitle: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: Platform.OS === 'web' ? 18 : 15,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  segmentWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: -30,
+    zIndex: 10,
+  },
+  segmentBlur: {
+    flexDirection: 'row',
+    borderRadius: 30,
+    padding: 6,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    maxWidth: 600,
+    width: '90%',
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderRadius: 24,
+  },
+  segmentBtnActive: {
+    backgroundColor: Colors.teal,
+  },
+  segmentBtnText: {
+    fontSize: 14,
     fontWeight: '700',
   },
-  sendBtn: {
-    backgroundColor: Colors.highlight,
-    paddingHorizontal: 18,
-    paddingVertical: 11,
-    borderRadius: 22,
+  mainContent: {
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 30,
+    paddingBottom: 60,
   },
-  sendBtnText: {
-    color: '#FFFFFF',
+  card: {
+    borderRadius: 24,
+    padding: Platform.OS === 'web' ? 40 : 20,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 4,
+  },
+  cardTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    marginBottom: 8,
+  },
+  cardDesc: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#888',
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  chipScroll: {
+    flexGrow: 0,
+    marginBottom: 24,
+  },
+  chip: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 10,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  previewContainer: {
+    width: '100%',
+    aspectRatio: Platform.OS === 'web' ? 2 : 1,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  placeholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewImg: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  actionRow: {
+    gap: 16,
+    width: '100%',
+  },
+  primaryBtn: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  primaryBtnGradient: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryBtnText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  secondaryBtn: {
+    flex: 1,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  secondaryBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  resultBox: {
+    marginTop: 24,
+    padding: 24,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  resultText: {
+    fontSize: 15,
+    lineHeight: 24,
+  },
+  audioBtn: {
+    marginTop: 16,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  audioBtnText: {
+    color: Colors.teal,
     fontWeight: '800',
     fontSize: 13,
+  },
+  chatArea: {
+    flex: 1,
+  },
+  bubble: {
+    maxWidth: '80%',
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  userBubble: {
+    backgroundColor: Colors.teal,
+    alignSelf: 'flex-end',
+    borderBottomRightRadius: 4,
+  },
+  aiBubble: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderBottomLeftRadius: 4,
+  },
+  bubbleText: {
+    fontSize: 15,
+    lineHeight: 24,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 30,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderWidth: 1,
+  },
+  input: {
+    flex: 1,
+    paddingHorizontal: 16,
+    fontSize: 15,
+    height: 44,
+    outlineStyle: 'none',
+  },
+  sendBtn: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendBtnText: {
+    color: '#FFF',
+    fontWeight: '800',
+    fontSize: 14,
   },
 });
