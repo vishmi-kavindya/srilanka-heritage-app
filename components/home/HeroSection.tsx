@@ -1,7 +1,6 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Animated, Platform, StyleSheet, Dimensions, Alert } from 'react-native';
+import { useState } from 'react';
+import { Animated, Dimensions, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/theme';
-import { DESTINATIONS } from '../../constants/homeData';
 
 const { height: SH } = Dimensions.get('window');
 const IS_WEB = Platform.OS === 'web';
@@ -16,6 +15,8 @@ interface HeroSectionProps {
 }
 
 export const HeroSection = ({ dest, heroIdx, heroOpacity, kenBurns, switchHero, onExplore }: HeroSectionProps) => {
+  const [email, setEmail] = useState('');
+
   return (
     <Animated.View style={[styles.hero, { opacity: heroOpacity }]}>
       <Animated.Image
@@ -25,51 +26,33 @@ export const HeroSection = ({ dest, heroIdx, heroOpacity, kenBurns, switchHero, 
       />
       {/* Gradient overlay */}
       <View style={styles.heroOverlay}>
-        {/* Small tag */}
-        <View style={styles.heroTag}>
-          <Text style={styles.heroTagText}>{dest.tag}</Text>
-        </View>
-
-        {/* Main title */}
-        <View style={styles.heroBottom}>
-          <View style={IS_WEB ? styles.heroBottomInner : {}}>
-            <Text style={styles.heroTitle}>{dest.title}</Text>
-            <Text style={styles.heroSub}>📍 {dest.sub}</Text>
-
-            <View style={styles.heroActions}>
-              <TouchableOpacity style={styles.btnExplore} onPress={onExplore} activeOpacity={0.85}>
-                <Text style={styles.btnExploreText}>EXPLORE SITE  →</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.btnAudio} onPress={() => Alert.alert('🎧 Audio Guide', `Playing: ${dest.title}`)} activeOpacity={0.85}>
-                <Text style={styles.btnAudioText}>🎧 Listen</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Destination chips */}
-            <View style={styles.heroChips}>
-              {DESTINATIONS.map((d, i) => (
-                <TouchableOpacity
-                  key={d.id}
-                  style={[styles.heroChip, i === heroIdx && styles.heroChipActive]}
-                  onPress={() => switchHero(i)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.heroChipText, i === heroIdx && styles.heroChipTextActive]}>
-                    {d.title.split(' ').slice(0, 2).join(' ')}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+        <View style={styles.heroSignup}>
+          <Text style={styles.heroSignupText}>Ready to travel? Enter your email to create or restart your membership.</Text>
+          <View style={styles.heroSignupRow}>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Email address"
+              placeholderTextColor="rgba(255,255,255,0.7)"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={styles.heroEmailInput}
+            />
+            <TouchableOpacity style={styles.heroGetStarted} onPress={onExplore} activeOpacity={0.85}>
+              <Text style={styles.heroGetStartedText}>Get Started</Text>
+              <Text style={styles.heroGetStartedArrow}>›</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
+      <View style={styles.heroBottomCurve} />
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   hero: {
-    height: IS_WEB ? SH * 0.88 : SH * 0.72,
+    height: IS_WEB ? SH * 0.99 : SH * 0.90,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -84,6 +67,77 @@ const styles = StyleSheet.create({
     paddingHorizontal: IS_WEB ? 60 : 24,
     paddingTop: IS_WEB ? 24 : 18,
     paddingBottom: 28,
+  },
+  heroBottomCurve: {
+    position: 'absolute',
+    left: '-18%',
+    bottom: -46,
+    width: '136%',
+    height: 88,
+    backgroundColor: '#000000',
+    borderTopWidth: 2,
+    borderTopColor: '#e5005a',
+    borderTopLeftRadius: 999,
+    borderTopRightRadius: 999,
+    shadowColor: '#162d86',
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -12 },
+    elevation: 8,
+  },
+  heroSignup: {
+    position: 'absolute',
+    left: IS_WEB ? 0 : 20,
+    right: IS_WEB ? 0 : 20,
+    bottom: 78,
+    alignItems: 'center',
+  },
+  heroSignupText: {
+    color: '#FFFFFF',
+    fontSize: IS_WEB ? 20 : 14,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: 20,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  heroSignupRow: {
+    flexDirection: 'row',
+    width: IS_WEB ? 650 : '100%',
+    gap: 10,
+  },
+  heroEmailInput: {
+    flex: 1,
+    minHeight: 56,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: 'rgba(20,20,20,0.72)',
+    color: '#FFFFFF',
+    fontSize: 17,
+  },
+  heroGetStarted: {
+    minHeight: 56,
+    paddingHorizontal: 22,
+    borderRadius: 5,
+    backgroundColor: Colors.accent,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 18,
+  },
+  heroGetStartedText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  heroGetStartedArrow: {
+    color: '#FFFFFF',
+    fontSize: 34,
+    fontWeight: '300',
+    lineHeight: 34,
   },
   heroTag: {
     alignSelf: 'flex-start',

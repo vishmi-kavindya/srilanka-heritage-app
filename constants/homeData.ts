@@ -1,5 +1,5 @@
 export const DESTINATIONS = [
-  { id: 1, title: 'SIGIRIYA LION ROCK', sub: 'Matale · Central Province', tag: 'UNESCO WORLD HERITAGE', image: require('../assets/images/temple.jpg'), rating: '4.9', cat: 'Archaeology', audioPoiId: 1 },
+  { id: 1, title: 'SIGIRIYA LION ROCK', sub: 'Matale · Central Province', tag: 'UNESCO WORLD HERITAGE', image: require('../assets/images/tt.png'), rating: '4.9', cat: 'Archaeology', audioPoiId: 1 },
   { id: 2, title: 'NINE ARCH BRIDGE', sub: 'Ella · Badulla District', tag: 'COLONIAL ENGINEERING', image: require('../assets/images/nine.jpg'), rating: '4.9', cat: 'History', audioPoiId: 2 },
   { id: 3, title: 'COCONUT TREE HILL', sub: 'Mirissa · Southern Coast', tag: 'TROPICAL SCENIC', image: require('../assets/images/coco.AVIF'), rating: '4.8', cat: 'Nature', audioPoiId: 3 },
   { id: 4, title: 'MIRISSA COASTAL BEACH', sub: 'Mirissa · Southern Province', tag: 'OCEAN & SURFING', image: require('../assets/images/beach.AVIF'), rating: '4.8', cat: 'Beach', audioPoiId: 4 },

@@ -1,21 +1,17 @@
-import React, { useRef, useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  LayoutChangeEvent,
-  Image,
-  Platform,
-} from 'react-native';
-import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
+import {
+    Image,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useAppTheme } from '../contexts/ThemeContext';
 import { TARGET_13_LANGUAGES } from '../constants/i18n';
 import { Colors } from '../constants/theme';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useAppTheme } from '../contexts/ThemeContext';
 
 const IS_WEB = Platform.OS === 'web';
 
@@ -60,7 +56,6 @@ export default function LiquidGlassTabBar({ state, navigation }: any) {
     // Mobile Bottom Tab Bar (Minimalist)
     return (
       <View style={[styles.mobileTabBar, { paddingBottom: Math.max(insets.bottom, 16), borderTopColor: borderBottomColor }]}>
-        <BlurView intensity={90} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
         <View style={styles.mobileTabInner}>
           {validRoutes.map((route: any, index: number) => {
             const isFocused = state.index === index;
@@ -90,8 +85,6 @@ export default function LiquidGlassTabBar({ state, navigation }: any) {
   // Web Premium Edge-to-Edge Navbar
   return (
     <View style={[styles.webHeaderContainer, { paddingTop: insets.top }]}>
-      <BlurView intensity={85} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
-
       <View style={[styles.webHeaderInner, { borderBottomColor }]}>
         {/* BRANDING */}
         <TouchableOpacity style={styles.brand} onPress={() => navigation.navigate('index')} activeOpacity={0.8}>
@@ -140,6 +133,14 @@ export default function LiquidGlassTabBar({ state, navigation }: any) {
           >
             <Ionicons name={isDark ? 'moon' : 'sunny'} size={14} color={textMain} />
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.signInBtn}
+            onPress={() => setShowWelcomeModal(true)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.signInText}>Sign In</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -154,6 +155,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 9999,
+    backgroundColor: 'rgba(0,0,0,0.72)',
   },
   webHeaderInner: {
     flexDirection: 'row',
@@ -230,6 +232,17 @@ const styles = StyleSheet.create({
   themeBtn: {
     paddingHorizontal: 10,
   },
+  signInBtn: {
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: 4,
+  },
+  signInText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
 
   // Mobile Bottom Tab Styles
   mobileTabBar: {
@@ -238,7 +251,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     borderTopWidth: 1,
-    backgroundColor: 'rgba(255,255,255,0.7)', // Fallback if blur fails
+    backgroundColor: 'transparent',
   },
   mobileTabInner: {
     flexDirection: 'row',
