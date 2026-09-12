@@ -1,22 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
-  Easing,
-  Image,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Animated,
+    Easing,
+    Image,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import {
-  LanguageCode,
-  LanguageItem,
-  TARGET_13_LANGUAGES,
-  getTranslation,
+    LanguageCode,
+    LanguageItem,
+    TARGET_13_LANGUAGES,
+    getTranslation,
 } from '../constants/i18n';
 
 interface Props {
@@ -63,9 +63,19 @@ export default function PearlExplorerWelcomeModal({
   const introTextOpacity = useRef(new Animated.Value(0)).current;
   const introTagOpacity = useRef(new Animated.Value(0)).current;
   const introLogoOpacity = useRef(new Animated.Value(0)).current;
+  const introLogoScale = useRef(new Animated.Value(1.45)).current;
   const logoPulseAnim = useRef(new Animated.Value(1)).current;
   const introFloatAnim = useRef(new Animated.Value(0)).current;
   const welcomeLetters = useRef("WELCOME".split('').map(() => new Animated.Value(0))).current;
+  const introCompleted = useRef(false);
+  const introFallbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const finishWelcomeIntro = () => {
+    if (introCompleted.current) return;
+    introCompleted.current = true;
+    if (introFallbackTimer.current) clearTimeout(introFallbackTimer.current);
+    onCompleteOnboarding(selectedLang);
+  };
 
   // Helper Function for Female / Girl Voice Audio Speech Output
   const playWelcomeVoice = () => {
@@ -105,8 +115,14 @@ export default function PearlExplorerWelcomeModal({
         getAndSetFemaleVoice();
 
         utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
+        utterance.onend = () => {
+          setIsSpeaking(false);
+          finishWelcomeIntro();
+        };
+        utterance.onerror = () => {
+          setIsSpeaking(false);
+          finishWelcomeIntro();
+        };
 
         window.speechSynthesis.speak(utterance);
       } catch (e) {
@@ -171,10 +187,12 @@ export default function PearlExplorerWelcomeModal({
       ]).start();
 
       if (step === 'intro') {
+        introCompleted.current = false;
         introTextScale.setValue(0.65);
         introTextOpacity.setValue(0);
         introTagOpacity.setValue(0);
         introLogoOpacity.setValue(0);
+        introLogoScale.setValue(1.45);
         introFloatAnim.setValue(0);
         welcomeLetters.forEach(val => val.setValue(0));
 
@@ -185,6 +203,19 @@ export default function PearlExplorerWelcomeModal({
             duration: 600,
             useNativeDriver: true,
           }),
+          Animated.parallel([
+            Animated.timing(introLogoOpacity, {
+              toValue: 1,
+              duration: 650,
+              useNativeDriver: true,
+            }),
+            Animated.spring(introLogoScale, {
+              toValue: 1,
+              friction: 6,
+              tension: 45,
+              useNativeDriver: true,
+            }),
+          ]),
           // Staggered letter animation for WELCOME
           Animated.stagger(100, welcomeLetters.map(val =>
             Animated.spring(val, {
@@ -194,11 +225,6 @@ export default function PearlExplorerWelcomeModal({
               useNativeDriver: true
             })
           )),
-          Animated.timing(introLogoOpacity, {
-            toValue: 1,
-            duration: 600,
-            useNativeDriver: true,
-          }),
           Animated.parallel([
             Animated.spring(introTextScale, {
               toValue: 1,
@@ -258,9 +284,14 @@ export default function PearlExplorerWelcomeModal({
         // Auto play female voice when Welcome text appears
         const voiceTimer = setTimeout(() => {
           playWelcomeVoice();
+          // Native platforms do not expose speechSynthesis, so avoid leaving the splash open.
+          introFallbackTimer.current = setTimeout(finishWelcomeIntro, 8000);
         }, 350);
 
-        return () => clearTimeout(voiceTimer);
+        return () => {
+          clearTimeout(voiceTimer);
+          if (introFallbackTimer.current) clearTimeout(introFallbackTimer.current);
+        };
       }
     }
   }, [visible, step]);
@@ -285,12 +316,14 @@ export default function PearlExplorerWelcomeModal({
   return (
     <Modal visible={visible} animationType="fade" transparent={false}>
       <View style={styles.fullscreenBg}>
-        {/* Animated Crossfade Background Image */}
-        <Animated.Image
-          source={BACKGROUND_IMAGES[currentBgIndex]}
-          style={[styles.backgroundImage, { opacity: bgFadeAnim }]}
-          resizeMode="cover"
-        />
+        {/* Keep the welcome intro as a clean, Netflix-style black splash screen. */}
+        {step !== 'intro' && (
+          <Animated.Image
+            source={BACKGROUND_IMAGES[currentBgIndex]}
+            style={[styles.backgroundImage, { opacity: bgFadeAnim }]}
+            resizeMode="cover"
+          />
+        )}
 
         {/* Dark Overlay Gradient for High Contrast */}
         <View style={styles.darkOverlay}>
@@ -341,51 +374,17 @@ export default function PearlExplorerWelcomeModal({
                     <Animated.View
                       style={[
                         styles.logoBadgeContainer,
-                        { opacity: introLogoOpacity, transform: [{ scale: logoPulseAnim }] },
+                          { opacity: introLogoOpacity, transform: [{ scale: introLogoScale }, { scale: logoPulseAnim }] },
                       ]}
                     >
                       <Image
-                        source={require('../assets/images/output-onlinegiftools.gif')}
+                          source={require('../assets/images/logo.png')}
                         style={styles.logoBadgeImage}
                         resizeMode="contain"
                       />
                     </Animated.View>
                   </View>
 
-                  {/* Bottom Content: Buttons and Dots */}
-                  <View style={styles.introBottomContent}>
-                    {/* Primary Continue Buttons */}
-                    <View style={styles.authButtonsRow}>
-                      <TouchableOpacity
-                        style={[styles.goldContinueButton, { flex: 1, marginRight: 6 }]}
-                        onPress={() => { setAuthMode('signin'); setStep('auth'); }}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.goldButtonText}>SIGN IN</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[styles.goldContinueButton, { flex: 1, marginLeft: 6, backgroundColor: 'transparent', borderWidth: 1.5, borderColor: '#d4af37' }]}
-                        onPress={() => { setAuthMode('signup'); setStep('auth'); }}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={[styles.goldButtonText, { color: '#d4af37' }]}>SIGN UP</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Slideshow Dots */}
-                    <View style={styles.slideshowDotsRow}>
-                      {BACKGROUND_IMAGES.map((_, idx) => (
-                        <View
-                          key={idx}
-                          style={[
-                            styles.dot,
-                            currentBgIndex === idx ? styles.activeDot : styles.inactiveDot,
-                          ]}
-                        />
-                      ))}
-                    </View>
-                  </View>
                 </Animated.View>
               </View>
             ) : step === 'language' ? (
@@ -578,7 +577,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
-    backgroundColor: '#05050a',
+    backgroundColor: '#000000',
   },
   backgroundImage: {
     position: 'absolute',
@@ -591,7 +590,7 @@ const styles = StyleSheet.create({
   },
   darkOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(5, 5, 12, 0.72)',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -609,7 +608,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: 'transparent',
     paddingHorizontal: 20,
-    paddingTop: 100,
+    paddingTop: 80,
     paddingBottom: 40,
     height: '90%',
     justifyContent: 'space-between',
@@ -648,8 +647,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 8,
   },
   logoBadgeContainer: {
-    width: 320,
-    height: 140,
+    width: 380,
+    height: 170,
     marginBottom: 40,
     justifyContent: 'center',
     alignItems: 'center',
