@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Linking, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const HERITAGE_SITES = [
   {
@@ -43,7 +44,10 @@ export default function MapTabScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>🗺️ Heritage Sites Map</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="map" size={24} color="#1d1d1f" style={{ marginRight: 8 }} />
+          <Text style={styles.title}>Heritage Sites Map</Text>
+        </View>
         <Text style={styles.subtitle}>Explore Historical Landmarks across Sri Lanka</Text>
       </View>
 
@@ -51,7 +55,10 @@ export default function MapTabScreen() {
         <View key={site.id} style={styles.siteCard}>
           <View style={styles.cardHeader}>
             <Text style={styles.siteName}>{site.name}</Text>
-            <Text style={styles.siteLocation}>📍 {site.location}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="location" size={14} color="#007aff" style={{ marginRight: 4 }} />
+              <Text style={styles.siteLocation}>{site.location}</Text>
+            </View>
           </View>
           <Text style={styles.siteDesc}>{site.desc}</Text>
 
@@ -59,7 +66,10 @@ export default function MapTabScreen() {
             style={styles.mapButton}
             onPress={() => openInGoogleMaps(site.coords.lat, site.coords.lng, site.name)}
           >
-            <Text style={styles.buttonText}>🧭 Open in Google Maps</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="compass" size={16} color="#ffffff" style={{ marginRight: 8 }} />
+              <Text style={styles.buttonText}>Open in Google Maps</Text>
+            </View>
           </TouchableOpacity>
         </View>
       ))}
