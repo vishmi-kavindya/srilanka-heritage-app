@@ -1,6 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Image, Platform, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { DESTINATIONS } from '../../constants/homeData';
 
 const IS_WEB = Platform.OS === 'web';
@@ -12,196 +11,216 @@ interface DestinationGridProps {
 }
 
 export const DestinationGrid = ({ textMain, textSub, switchHero }: DestinationGridProps) => {
-  const router = useRouter();
+  const items = DESTINATIONS.slice(0, 10);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const animatedValues = useRef(items.map(() => new Animated.Value(0.96))).current;
+
+  useEffect(() => {
+    items.forEach((_, index) => {
+      const isActive = index === selectedIndex;
+      const isHovered = index === hoveredIndex;
+      const target = isActive ? 1.08 : isHovered ? 1.02 : 0.96;
+
+      Animated.spring(animatedValues[index], {
+        toValue: target,
+        friction: 8,
+        tension: 70,
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [animatedValues, hoveredIndex, items, selectedIndex]);
+
+  const handleCardPress = (index: number) => {
+    setSelectedIndex(index);
+    switchHero(index);
+  };
 
   return (
-    <>
-      <View style={[styles.pageIntro, IS_WEB && styles.pageIntroWeb]}>
-        <Text style={[styles.pageIntroOverline, { color: '#E8612A' }]}>DESTINATION GUIDE</Text>
-        <Text style={[styles.pageIntroHeading, { color: textMain }]}>Discover Sri Lanka</Text>
-        <Text style={[styles.pageIntroBody, { color: textSub }]}>
-          A meeting place of ancient civilisations and pristine nature. Eight UNESCO World Heritage Sites and endless beaches await.
-        </Text>
+    <View style={styles.wrapper}>
+      <View style={styles.pageIntro}>
+        <Text style={[styles.pageIntroHeading, { color: textMain }]}>Popular Now</Text>
       </View>
 
-      <View style={[styles.destGrid, IS_WEB && styles.destGridWeb]}>
-        {DESTINATIONS.slice(0, IS_WEB ? 6 : 4).map((d, i) => (
-          <TouchableOpacity key={d.id} style={styles.archCard} onPress={() => switchHero(i)} activeOpacity={0.88}>
-            <View style={styles.archImgWrapper}>
-              <Image source={d.image} style={styles.archImg} resizeMode="cover" />
-              <View style={styles.archRatingBadge}>
-                <Text style={styles.archRatingText}>★ {d.rating}</Text>
-              </View>
-            </View>
-            <View style={styles.archCardBody}>
-              <Text style={[styles.archCat, { color: '#E8612A' }]}>{d.cat.toUpperCase()}</Text>
-              <Text style={[styles.archTitle, { color: textMain }]} numberOfLines={2}>{d.title}</Text>
-              <Text style={[styles.archSub, { color: textSub }]}>{d.sub}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <View style={styles.carouselWrap}>
+        <TouchableOpacity style={styles.sideButton} activeOpacity={0.8}>
+          <Text style={styles.sideButtonText}>{'<'}</Text>
+        </TouchableOpacity>
 
-      <View style={styles.ctaBanner}>
-        <View style={[styles.ctaBannerInner, IS_WEB && styles.ctaBannerInnerWeb]}>
-          <View style={styles.ctaLeft}>
-            <Text style={styles.ctaEyebrow}>START YOUR ADVENTURE</Text>
-            <Text style={styles.ctaHeading}>Sri Lanka Awaits{IS_WEB ? ' You' : ''}</Text>
-          </View>
-          <TouchableOpacity style={styles.ctaBtn} onPress={() => router.push('/map')} activeOpacity={0.85}>
-            <Text style={styles.ctaBtnText}>EXPLORE THE MAP  →</Text>
-          </TouchableOpacity>
+        <View style={styles.destGrid}>
+          {items.map((d, i) => {
+            const isActive = i === selectedIndex;
+            const isHovered = i === hoveredIndex;
+            const scale = animatedValues[i];
+            const translateY = scale.interpolate({
+              inputRange: [0.96, 1.02, 1.08],
+              outputRange: [10, 4, 0],
+            });
+            const translateX = isActive ? 0 : isHovered ? 1 : 0;
+            const opacity = scale.interpolate({
+              inputRange: [0.96, 1.02, 1.08],
+              outputRange: [0.9, 0.96, 1],
+            });
+
+            const hoverHandlers = IS_WEB
+              ? {
+                  onHoverIn: () => setHoveredIndex(i),
+                  onHoverOut: () => setHoveredIndex(null),
+                }
+              : {};
+
+            return (
+              <Animated.View
+                key={d.id}
+                style={[
+                  styles.archCardWrap,
+                  {
+                    transform: [{ scale }, { translateY }, { translateX }],
+                    opacity,
+                    shadowOpacity: isActive || isHovered ? 0.22 : 0.14,
+                  },
+                ]}
+              >
+                <TouchableOpacity
+                  {...hoverHandlers}
+                  style={[styles.archCard, (isActive || isHovered) && styles.archCardActive]}
+                  onPress={() => handleCardPress(i)}
+                  onPressIn={() => setHoveredIndex(i)}
+                  onPressOut={() => setHoveredIndex(null)}
+                  activeOpacity={0.9}
+                >
+                  <Image source={d.image} style={styles.archImg} resizeMode="cover" />
+
+                  <View style={styles.overlayLayer} pointerEvents="none">
+                    <Text style={styles.numberText}>{i + 1}</Text>
+                    <Text style={styles.titleText}>{d.title}</Text>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          })}
         </View>
+
+        <TouchableOpacity style={styles.sideButtonRight} activeOpacity={0.8}>
+          <Text style={styles.sideButtonText}>{'>'}</Text>
+        </TouchableOpacity>
       </View>
-    </>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  wrapper: {
+    backgroundColor: '#070707',
+    paddingBottom: 24,
+  },
   pageIntro: {
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 0,
-  },
-  pageIntroWeb: {
-    paddingHorizontal: 60,
-    paddingTop: 80,
-    alignItems: 'center',
-    textAlign: 'center' as any,
-  },
-  pageIntroOverline: {
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 2.5,
+    paddingHorizontal: 32,
+    paddingTop: 4,
     marginBottom: 12,
-    textAlign: IS_WEB ? 'center' : 'left',
   },
   pageIntroHeading: {
-    fontSize: IS_WEB ? 56 : 38,
+    fontSize: IS_WEB ? 30 : 24,
     fontWeight: '900',
-    letterSpacing: -1,
-    lineHeight: IS_WEB ? 62 : 44,
-    marginBottom: 16,
-    textAlign: IS_WEB ? 'center' : 'left',
+    letterSpacing: -2.2,
+    lineHeight: IS_WEB ? 74 : 48,
+    textAlign: 'left',
   },
-  pageIntroBody: {
-    fontSize: 16,
-    lineHeight: 26,
-    maxWidth: IS_WEB ? 560 : 9999,
-    textAlign: IS_WEB ? 'center' : 'left',
-    alignSelf: IS_WEB ? 'center' : 'flex-start',
-    marginBottom: 8,
+  carouselWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
   },
   destGrid: {
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    flexDirection: 'column',
-    gap: 24,
-  },
-  destGridWeb: {
-    paddingHorizontal: 60,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 28,
+    flex: 1,
+    gap: 18,
+    alignItems: 'flex-end',
+    overflow: 'visible',
+  },
+  archCardWrap: {
+    shadowColor: '#000',
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
   },
   archCard: {
-    flex: IS_WEB ? undefined : undefined,
-    width: IS_WEB ? 'calc(33% - 20px)' as any : '100%',
-    backgroundColor: '#FFF',
-    borderRadius: 16,
+    width: IS_WEB ? 180 : 150,
+    height: IS_WEB ? 280 : 230,
+    borderRadius: 18,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  archImgWrapper: {
-    width: '100%',
-    height: IS_WEB ? 240 : 200,
-    borderTopLeftRadius: 100,
-    borderTopRightRadius: 100,
-    overflow: 'hidden',
+    backgroundColor: '#111',
     position: 'relative',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    opacity: 1,
+  },
+  archCardActive: {
+    shadowColor: '#ff7a18',
+    shadowOpacity: 0.2,
+    shadowRadius: 18,
+    borderColor: 'rgba(255,122,24,0.45)',
   },
   archImg: {
     width: '100%',
     height: '100%',
   },
-  archRatingBadge: {
+  overlayLayer: {
     position: 'absolute',
-    top: 16,
-    right: 16,
-    backgroundColor: '#E8612A',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  archRatingText: {
-    color: '#FFF',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  archCardBody: {
-    padding: 20,
-    paddingTop: 16,
-  },
-  archCat: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 2,
-    marginBottom: 6,
-  },
-  archTitle: {
-    fontSize: IS_WEB ? 17 : 16,
-    fontWeight: '800',
-    letterSpacing: 0.2,
-    marginBottom: 6,
-    lineHeight: 22,
-  },
-  archSub: {
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  ctaBanner: {
-    marginTop: 60,
-    backgroundColor: '#E8612A',
-  },
-  ctaBannerInner: {
-    paddingHorizontal: 24,
-    paddingVertical: 48,
-    gap: 24,
-  },
-  ctaBannerInnerWeb: {
-    paddingHorizontal: 60,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    gap: 40,
+    backgroundColor: 'rgba(0,0,0,0.12)',
   },
-  ctaLeft: { gap: 8 },
-  ctaEyebrow: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 11,
+  numberText: {
+    color: '#F5F5F5',
+    fontSize: IS_WEB ? 58 : 44,
+    fontWeight: '900',
+    lineHeight: 58,
+    letterSpacing: -2,
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+  titleText: {
+    color: '#F5F5F5',
+    fontSize: 15,
     fontWeight: '800',
-    letterSpacing: 2.5,
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+    maxWidth: 90,
+    textAlign: 'right',
   },
-  ctaHeading: {
-    color: '#FFF',
-    fontSize: IS_WEB ? 40 : 30,
-    fontWeight: '900',
-    lineHeight: IS_WEB ? 44 : 36,
+  sideButton: {
+    width: 32,
+    height: 120,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
   },
-  ctaBtn: {
-    backgroundColor: '#FFF',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 6,
-    alignSelf: IS_WEB ? 'center' : 'flex-start',
+  sideButtonRight: {
+    width: 32,
+    height: 120,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
   },
-  ctaBtnText: {
-    color: '#E8612A',
-    fontSize: 13,
-    fontWeight: '900',
-    letterSpacing: 1.2,
+  sideButtonText: {
+    color: '#FFFFFF',
+    fontSize: 38,
+    fontWeight: '300',
+    lineHeight: 38,
   },
 });
