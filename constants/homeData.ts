@@ -6,6 +6,9 @@ export const DESTINATIONS = [
   { id: 5, title: 'TEMPLE OF THE SACRED TOOTH', sub: 'Kandy · Central Highlands', tag: 'SACRED ROYAL SHRINE', image: require('../assets/images/temple.jpg'), rating: '4.9', cat: 'Spiritual', audioPoiId: 1 },
   { id: 6, title: 'GALLE DUTCH FORT', sub: 'Galle · Southern Coast', tag: '17TH CENTURY FORTRESS', image: require('../assets/images/beach.AVIF'), rating: '4.8', cat: 'History', audioPoiId: 4 },
   { id: 7, title: 'POLONNARUWA VATADAGE', sub: 'Polonnaruwa · North Central', tag: 'ANCIENT KINGDOM', image: require('../assets/images/nine.jpg'), rating: '4.9', cat: 'Archaeology', audioPoiId: 2 },
+  { id: 8, title: 'YALA WILDLIFE SAFARI', sub: 'Hambantota · Southern Sri Lanka', tag: 'WILD NATURE', image: require('../assets/images/coco.AVIF'), rating: '4.7', cat: 'Wildlife', audioPoiId: 3 },
+  { id: 9, title: ' KANDY LAKE', sub: 'Kandy · Central Highlands', tag: 'MOUNTAIN CITY', image: require('../assets/images/temple.jpg'), rating: '4.8', cat: 'Scenic', audioPoiId: 1 },
+  { id: 10, title: 'UNAWATUNA BAY', sub: 'Galle · Southern Coast', tag: 'SERENE COASTLINE', image: require('../assets/images/beach.AVIF'), rating: '4.7', cat: 'Beach', audioPoiId: 4 },
 ];
 
 export const THINGS_TO_DO = [
